@@ -1,0 +1,439 @@
+================================================================================
+  LOGILINK - COMPLETE SECURITY DESCRIPTION
+  Platform  : Angular 18 (frontend) + NestJS (backend)
+  Date      : 2026-05-19
+================================================================================
+
+This document describes every security mechanism implemented across the
+LogiLink platform, covering authentication, authorization, session management,
+transport hardening, input validation, and data protection.
+
+--------------------------------------------------------------------------------
+  1. TWO-FACTOR AUTHENTICATION (2FA)
+--------------------------------------------------------------------------------
+
+All users (students, admins, companies) must pass a 2-step login flow:
+
+  Step 1 — Credentials
+    The user submits CIN/password (students/admin) or email/password
+    (companies) to POST /auth/signin or POST /auth/signin-entreprise.
+    The backend validates credentials but does NOT issue a JWT.
+    Instead it:
+      - Generates a cryptographically random 6-digit code using
+        crypto.randomInt(0, 1_000_000), zero-padded to always be 6 digits.
+      - Creates a server-side challenge (challengeId = UUID v4) stored
+        in an in-memory Map with: code, account reference, attempt count,
+        expiry timestamp, and last-sent timestamp.
+      - Emails the code to the user via Gmail SMTP (nodemailer).
+      - Returns only { challengeId, maskedEmail, type } — no token.
+
+  Step 2 — Code Verification
+    The user submits POST /auth/verify-2fa { challengeId, code }.
+    The backend validates the code, consumes the challenge (single-use),
+    and ONLY THEN issues a signed JWT.
+
+  Challenge Lifecycle Rules:
+    - TTL                : 10 minutes (auto-expired)
+    - Resend cooldown    : 60 seconds per request
+    - Max wrong attempts : 5 (challenge destroyed on exceed)
+    - Code is single-use (destroyed on correct verification)
+    - challengeId alone is useless — the code travels only by email
+
+  Files:
+    backend/src/auth/two-factor.service.ts
+    backend/src/auth/dto/verify-2fa.dto.ts
+    backend/src/auth/auth.controller.ts   (POST /auth/verify-2fa, /resend-2fa)
+    backend/src/auth/auth.service.ts
+    src/app/auth/verify/verify.ts
+
+
+--------------------------------------------------------------------------------
+  2. JSON WEB TOKEN (JWT) CONFIGURATION
+--------------------------------------------------------------------------------
+
+  - Algorithm   : HS256 (HMAC-SHA256)
+  - Secret      : Minimum 32 characters (256 bits), enforced at boot.
+                  The server refuses to start if JWT_SECRET is:
+                    a) missing
+                    b) a known-weak placeholder value
+                    c) shorter than 32 characters
+  - Lifetime    : 4 hours (reduced from the original 7 days to limit
+                  the window of misuse if a token is stolen)
+  - Payload     : { sub (user id), role, cin_passport OR email }
+  - Role values : 'admin' | 'etudiant' | 'entreprise'
+
+  Files:
+    backend/src/auth/auth.module.ts       (expiresIn: '4h')
+    backend/src/auth/strategies/jwt.strategy.ts
+    backend/src/main.ts                   (assertStrongJwtSecret() check)
+
+
+--------------------------------------------------------------------------------
+  3. PASSWORD HASHING (BCRYPT)
+--------------------------------------------------------------------------------
+
+  Company passwords are hashed with bcrypt (12 salt rounds) before being
+  stored in the database. The login flow uses bcrypt.compare() server-side
+  and never compares passwords in SQL.
+
+  Legacy plaintext rows: the backend's signInEntreprise detects whether a
+  stored value looks like a bcrypt hash; if not, it falls back to a direct
+  compare (for backwards compatibility with pre-existing accounts) while
+  flagging the account for re-hash on next login.
+
+  Files:
+    backend/src/entreprise/entreprise.service.ts   (register — bcrypt.hash)
+    backend/src/auth/auth.service.ts               (signInEntreprise — bcrypt.compare)
+
+
+--------------------------------------------------------------------------------
+  4. IDLE SESSION EXPIRY (CURSOR INACTIVITY TIMEOUT)
+--------------------------------------------------------------------------------
+
+  If an authenticated user stays on any protected page for 1 full hour
+  without moving the mouse cursor, the platform automatically:
+    1. Clears the session from localStorage (token, user, entreprise, role)
+    2. Redirects the user to /login
+
+  Implementation details:
+    - An IdleTimeoutService registers a passive 'mousemove' listener on
+      document. The listener runs outside the Angular zone to add zero
+      change-detection overhead.
+    - Every mouse movement resets a 60-minute countdown timer.
+    - On expiry the timer fires, clears storage, then re-enters the Angular
+      zone to call Router.navigate(['/login']).
+    - The timer is started only on authenticated routes (token present in
+      localStorage and the current URL is not a public page).
+    - The timer is stopped when the user navigates to a public page (login,
+      register, forgot-password, etc.) to avoid spurious redirects.
+
+  Protected routes (timer active):
+    /home/*         (students)
+    /admin/*        (admins)
+    /entreprise/*   (companies)
+
+  Public routes (timer inactive):
+    /login, /login-etudiant, /verify, /forgot-password, /verify-code,
+    /reset-password, /register-entreprise, /entreprise/loginen,
+    /entreprise/forgot-password, /entreprise/verify-code,
+    /entreprise/reset-password
+
+  Files:
+    src/app/auth/services/idle-timeout.service.ts   (core service)
+    src/app/app.ts                                   (start/stop wiring via NavigationEnd)
+
+
+--------------------------------------------------------------------------------
+  5. ANGULAR ROUTE GUARDS (FRONTEND AUTHORIZATION)
+--------------------------------------------------------------------------------
+
+  authGuard
+    Reads and decodes the JWT from localStorage (without verifying the
+    signature — that is the server's responsibility). If no token exists or
+    the token has expired (payload.exp < now), it wipes localStorage and
+    redirects to /login.
+
+  roleGuard(...allowedRoles)
+    Performs the same check as authGuard, then additionally verifies that
+    payload.role (from the JWT, not from a separate localStorage.role field)
+    is in the set of allowed roles. A mismatch redirects to /login.
+    Role is ALWAYS read from the decoded JWT — editing localStorage cannot
+    grant higher privileges.
+
+  Applied to parent routes:
+    /home        -> [authGuard, roleGuard('etudiant')]
+    /admin       -> [authGuard, roleGuard('admin')]
+    /entreprise  -> [authGuard, roleGuard('entreprise')]
+
+  Files:
+    src/app/auth/guards/auth.guard.ts
+    src/app/app.routes.ts
+
+
+--------------------------------------------------------------------------------
+  6. HTTP INTERCEPTOR (AUTOMATIC TOKEN ATTACHMENT)
+--------------------------------------------------------------------------------
+
+  A functional Angular HTTP interceptor reads localStorage.token and attaches
+  it as an Authorization: Bearer <token> header on every outgoing HTTP request
+  that targets environment.apiUrl (the NestJS backend). Requests to Supabase
+  or any other third-party host are left untouched.
+
+  Files:
+    src/app/auth/interceptors/auth.interceptor.ts
+    src/app/app.config.ts   (registered via withInterceptors([authInterceptor]))
+
+
+--------------------------------------------------------------------------------
+  7. BACKEND AUTHORIZATION — JWT GUARD + ROLE GUARD
+--------------------------------------------------------------------------------
+
+  NestJS controllers are protected by two chained guards:
+
+  JwtAuthGuard (Passport)
+    Validates the Authorization: Bearer token on every request and populates
+    req.user with the decoded JWT payload. Rejects with 401 if missing/invalid.
+
+  RolesGuard
+    Reads the @Roles('admin'|'etudiant'|'entreprise') decorator on each
+    controller or handler and compares req.user.role. Rejects with 403 if
+    the role does not match.
+
+  Controllers protected:
+    AdminModule controllers       -> @Roles('admin')
+    OffresController              -> per-handler roles (see section 8)
+    EntrepriseController          -> per-handler roles + ownership checks
+
+  Google Form webhook endpoint:
+    Kept public (called by Google, not by users) but wrapped with a
+    strict rate limit to prevent abuse.
+
+  Files:
+    backend/src/auth/guards/roles.guard.ts
+    backend/src/auth/decorators/roles.decorator.ts
+    backend/src/admin/*.controller.ts
+    backend/src/offres/offres.controller.ts
+    backend/src/entreprise/entreprise.controller.ts
+
+
+--------------------------------------------------------------------------------
+  8. IDOR (INSECURE DIRECT OBJECT REFERENCE) FIXES — /OFFRES ENDPOINTS
+--------------------------------------------------------------------------------
+
+  Previously any caller could substitute any company id in the URL and read
+  all candidatures and CVs of that company. Fixed by an ownership assertion
+  that runs server-side on every relevant endpoint:
+
+    assertEntrepriseOwnership(req, societeId):
+      - Admins bypass the check (they may access any company's data).
+      - Any other role that is not 'entreprise' is rejected (403).
+      - An 'entreprise' user is allowed only if String(req.user.sub) ===
+        String(societeId).
+
+  Applied to:
+    POST /offres/create
+    GET  /offres/company/:societeId
+    GET  /offres/company/:societeId/candidatures
+    GET  /offres/company/:societeId/candidatures/:studentId/cv
+    PUT  /offres/:id
+    DELETE /offres/:id          (ownership resolved via DB lookup of the post)
+    POST /offres/apply          (student sub must match data.id_etudiant)
+    GET  /offres/student/:studentId/applied  (student sub must match URL param)
+
+  Files:
+    backend/src/offres/offres.controller.ts
+    backend/src/offres/offres.service.ts    (getOffreOwningSocieteId)
+
+
+--------------------------------------------------------------------------------
+  9. LOCKING DOWN EMAIL-SENDER ENDPOINTS (ANTI-PHISHING)
+--------------------------------------------------------------------------------
+
+  Previously, POST /admin/societe/send-approval-email and similar endpoints
+  accepted a caller-controlled `to` field, making them an open phishing relay
+  signed by the official logilink.djagora@gmail.com address.
+
+  Fixed by:
+    - Accepting only { societeId } from the client.
+    - Looking up the company email server-side:
+        SELECT id, email, denomination_sociale FROM Societe WHERE id=?
+    - Using THAT server-side email; the client can never inject an arbitrary
+      recipient address.
+    - Protecting all three endpoints with @UseGuards(JwtAuthGuard, RolesGuard)
+      + @Roles('admin').
+
+  Endpoints:
+    POST /admin/societe/send-approval-email   { societeId }
+    POST /admin/societe/send-rejection-email  { societeId }
+    POST /admin/societe/send-pending-email    { societeId }
+
+  Files:
+    backend/src/admin/ancien-etudiants.controller.ts
+    backend/src/admin/mail.service.ts
+
+
+--------------------------------------------------------------------------------
+  10. SUPABASE SERVICE-ROLE KEY REMOVED FROM THE BROWSER BUNDLE
+--------------------------------------------------------------------------------
+
+  The Supabase service-role key (which bypasses Row-Level Security entirely)
+  was previously shipped inside the Angular bundle inside environment.ts,
+  making it visible to anyone who opened browser DevTools.
+
+  Fixed by:
+    - Deleting supabaseServiceRoleKey from src/environments/environment.ts.
+    - Removing the second createClient call in supabase.service.ts.
+    - Marking the existing adminClient getter as deprecated (returns the
+      anon client now; admin-only operations must go through backend
+      endpoints that are themselves protected by JwtAuthGuard + RolesGuard).
+
+  Note: The service-role key still lives in backend/.env for legitimate
+  server-to-server communication. It never reaches the browser.
+
+  Files:
+    src/environments/environment.ts
+    src/app/services/supabase.service.ts
+
+
+--------------------------------------------------------------------------------
+  11. CORS HARDENING
+--------------------------------------------------------------------------------
+
+  The previous configuration used origin: true with credentials: true, which
+  reflected any origin and allowed cross-site credentialed requests.
+
+  Fixed:
+    - origin reads CORS_ORIGINS from the environment variable (comma-separated).
+    - A dynamic callback allows the request only if its Origin header is in
+      the allowlist; server-to-server requests with no Origin header pass.
+    - Credentials are still true (required for cookies/auth headers).
+    - Allowed methods: GET, POST, PUT, PATCH, DELETE, OPTIONS.
+    - Default allowlist (development): http://localhost:4200, http://127.0.0.1:4200
+
+  Files:
+    backend/src/main.ts
+    backend/.env   (CORS_ORIGINS variable)
+
+
+--------------------------------------------------------------------------------
+  12. HTTP SECURITY HEADERS (HELMET)
+--------------------------------------------------------------------------------
+
+  Helmet is applied globally via app.use(helmet(...)). Headers set:
+
+    X-Frame-Options: SAMEORIGIN          prevents clickjacking / iframe embedding
+    X-Content-Type-Options: nosniff      prevents MIME-type sniffing
+    Strict-Transport-Security            enforces HTTPS (when TLS is in place)
+    Referrer-Policy: no-referrer         hides referrer on cross-origin requests
+    X-XSS-Protection: 0                  disables IE legacy XSS filter (safer)
+    Cross-Origin-Resource-Policy         restricts cross-origin reads
+    Origin-Agent-Cluster                 process-isolates the origin
+    X-DNS-Prefetch-Control: off          disables DNS prefetching
+
+  Files:
+    backend/src/main.ts
+
+
+--------------------------------------------------------------------------------
+  13. RATE LIMITING (ANTI BRUTE-FORCE)
+--------------------------------------------------------------------------------
+
+  @nestjs/throttler is registered globally via APP_GUARD with two windows:
+    - Short window : 60 requests per 60 seconds
+    - Long window  : 1 000 requests per 60 minutes
+
+  Additional per-route overrides on auth endpoints:
+    POST /auth/signin                 : 10 requests / minute
+    POST /auth/signin-entreprise      : 10 requests / minute
+    POST /auth/verify-2fa             : 15 requests / minute
+    POST /auth/resend-2fa             : 5 requests / minute
+    POST /entreprise/register         : 5 requests / minute
+    POST /entreprise/conflict         : 30 requests / minute
+    Google Form webhook               : 30 requests / minute
+
+  Combined with 2FA's per-challenge attempt limit (max 5 wrong codes),
+  brute-forcing a login requires breaking both the rate limiter and the
+  emailed code simultaneously.
+
+  Files:
+    backend/src/app.module.ts         (global ThrottlerGuard + windows)
+    backend/src/auth/auth.controller.ts
+    backend/src/entreprise/entreprise.controller.ts
+
+
+--------------------------------------------------------------------------------
+  14. INPUT VALIDATION — BACKEND DTOs
+--------------------------------------------------------------------------------
+
+  The global ValidationPipe is configured with whitelist: true and
+  forbidNonWhitelisted: true, which:
+    - Strips any property not declared in the DTO class.
+    - Rejects requests that include undeclared properties (403).
+
+  Key DTOs added or enforced:
+    VerifyTwoFactorDto        : challengeId (string), code (/^\d{6}$/)
+    SignInEntrepriseDto        : email (@IsEmail), mot_de_passe (string)
+    RegisterEntrepriseDto     : @IsEmail email, @MinLength(8) password,
+                                telephone regex /^\d[\d\s]{6,12}\d$/,
+                                all text fields @IsString + @MaxLength
+
+  Files:
+    backend/src/auth/dto/verify-2fa.dto.ts
+    backend/src/auth/dto/signin-entreprise.dto.ts
+    backend/src/entreprise/dto/register-entreprise.dto.ts
+    backend/src/main.ts   (ValidationPipe options)
+
+
+--------------------------------------------------------------------------------
+  15. SENSITIVE DATA — REMOVED CONSOLE LOGS
+--------------------------------------------------------------------------------
+
+  Several components previously logged the full registration payload to the
+  browser console, including the company's plaintext password. All such
+  debug console.log calls have been removed:
+    - 'Payload:' log in register-entreprise.ts
+    - 'Calling createSociete...' / 'createSociete succeeded' logs
+    - 'Checking for existing company...' logs in supabase.service.ts
+
+  Files:
+    src/app/entreprise/register/register-entreprise.ts
+    src/app/services/supabase.service.ts
+
+
+--------------------------------------------------------------------------------
+  16. HARD-CODED URL CLEANUP
+--------------------------------------------------------------------------------
+
+  All hard-coded http://localhost:3001 strings have been replaced with
+  environment.apiUrl to prevent production builds from silently targeting
+  the wrong host:
+    src/app/auth/services/auth-api.service.ts
+    src/app/entreprise/services/entreprise-api.service.ts
+    src/app/admin/home_admin/comonent_admin/formations_admin/referentiel-api.service.ts
+    src/app/user/home/component/profil/profil.ts
+
+  Files:
+    src/environments/environment.ts   (defines apiUrl)
+
+
+--------------------------------------------------------------------------------
+  17. .ENV PROTECTION
+--------------------------------------------------------------------------------
+
+  backend/.env is added to .gitignore so it is never committed to version
+  control again. A backend/.env.example file documents every required
+  environment variable with placeholder values, allowing new developers to
+  set up the project without exposing real secrets.
+
+  Files:
+    .gitignore
+    backend/.env.example
+
+
+================================================================================
+  SECURITY FEATURE SUMMARY TABLE
+================================================================================
+
+  #   Feature                                         Scope
+  --- ----------------------------------------------- -----------------------
+  1   Two-Factor Authentication (TOTP via email)      Backend + Frontend
+  2   JWT with strong secret + 4h lifetime            Backend
+  3   Idle cursor timeout → session expiry (1 hour)   Frontend
+  4   Angular route guards (authGuard + roleGuard)    Frontend
+  5   HTTP interceptor (automatic token attachment)   Frontend
+  6   JWT Guard + Role Guard on NestJS controllers    Backend
+  7   bcrypt password hashing (12 rounds)             Backend
+  8   IDOR ownership checks on /offres endpoints      Backend
+  9   Anti-phishing: server-side email recipient      Backend
+  10  Supabase service-role key removed from bundle   Frontend
+  11  CORS restricted to explicit origin allowlist    Backend
+  12  Helmet HTTP security headers                    Backend
+  13  Global + per-route rate limiting (throttler)    Backend
+  14  DTO-based input validation (whitelist mode)     Backend
+  15  Sensitive console.log removed                   Frontend
+  16  Hard-coded localhost URLs replaced with env     Frontend
+  17  .env excluded from version control              Infra
+
+================================================================================
+END
+================================================================================
