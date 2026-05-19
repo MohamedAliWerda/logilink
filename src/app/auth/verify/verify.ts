@@ -1,6 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { AuthApiService, VerifyTwoFactorResponse } from '../services/auth-api.service';
+import { CvSubmissionService } from '../../user/home/component/cv-ats/cv-submission.service';
+
+type RedirectFlow = 'admin' | 'etudiant' | 'entreprise';
 
 @Component({
   selector: 'app-verify',
@@ -10,17 +15,33 @@ import { Router } from '@angular/router';
   styleUrls: ['./verify.css']
 })
 export class Verify {
-   digits: string[] = ['', '', '', '', '', ''];
+  digits: string[] = ['', '', '', '', '', ''];
   email: string = '';
   errorMsg: string = '';
   resendCooldown: number = 0;
+  isSubmitting = false;
+  isResending = false;
   private timerInterval: number | undefined;
+  private challengeId: string = '';
+  private redirectFlow: RedirectFlow = 'etudiant';
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private readonly authApi: AuthApiService,
+    private readonly cvSubmissionService: CvSubmissionService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
     const state = history.state;
     this.email = state?.email || 'votre email';
+    this.challengeId = state?.challengeId || '';
+    this.redirectFlow = (state?.redirectFlow as RedirectFlow) || 'etudiant';
+
+    if (!this.challengeId) {
+      this.errorMsg = 'Session de vérification invalide. Veuillez vous reconnecter.';
+    }
+
     this.startCooldown();
   }
 
@@ -34,7 +55,7 @@ export class Verify {
     this.digits[index] = val;
     input.value = val;
     this.errorMsg = '';
-    
+
     if (val && index < 5) {
       const next = document.querySelectorAll<HTMLInputElement>('.digit-input')[index + 1];
       next?.focus();
@@ -51,7 +72,7 @@ export class Verify {
   onPaste(event: ClipboardEvent): void {
     const text = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 6) || '';
     text.split('').forEach((ch, i) => { this.digits[i] = ch; });
-    
+
     const inputs = document.querySelectorAll<HTMLInputElement>('.digit-input');
     inputs.forEach((inp, i) => inp.value = this.digits[i] || '');
     inputs[Math.min(text.length, 5)]?.focus();
@@ -59,21 +80,116 @@ export class Verify {
     event.preventDefault();
   }
 
-  verify(): void {
+  async verify(): Promise<void> {
+    if (this.isSubmitting) return;
+
     const code = this.digits.join('');
     if (code.length < 6) {
       this.errorMsg = 'Veuillez entrer le code complet à 6 chiffres.';
       return;
     }
-    this.router.navigate(['/dashboard']);
+
+    if (!this.challengeId) {
+      this.errorMsg = 'Session de vérification invalide. Veuillez vous reconnecter.';
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMsg = '';
+    this.cdr.detectChanges();
+
+    try {
+      const response = await this.authApi.verifyTwoFactor(this.challengeId, code);
+      await this.persistSessionAndNavigate(response);
+    } catch (err) {
+      this.errorMsg = this.extractError(err) || 'Code invalide.';
+      this.isSubmitting = false;
+      this.cdr.detectChanges();
+    }
   }
 
-  resend(): void {
-    if (this.resendCooldown > 0) return;
-    
-    // TODO: call backend to resend code
-    console.log('Resend verification code to:', this.email);
-    this.startCooldown();
+  async resend(): Promise<void> {
+    if (this.resendCooldown > 0 || this.isResending || !this.challengeId) return;
+
+    this.isResending = true;
+    this.errorMsg = '';
+    this.cdr.detectChanges();
+
+    try {
+      await this.authApi.resendTwoFactor(this.challengeId);
+      this.startCooldown();
+    } catch (err) {
+      this.errorMsg = this.extractError(err) || 'Impossible d\'envoyer un nouveau code.';
+    } finally {
+      this.isResending = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private async persistSessionAndNavigate(response: VerifyTwoFactorResponse): Promise<void> {
+    const { access_token, user, entreprise, role } = response.data;
+
+    localStorage.setItem('token', access_token);
+
+    if (this.redirectFlow === 'entreprise' || role === 'entreprise') {
+      if (entreprise) {
+        localStorage.setItem('entreprise', JSON.stringify(entreprise));
+      }
+      localStorage.setItem('role', 'entreprise');
+      await this.router.navigate(['/entreprise/offres']);
+      return;
+    }
+
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('role', user.role);
+
+      if (user.role === 'admin') {
+        await this.router.navigate(['/admin/dashboard']);
+        return;
+      }
+
+      if (user.role === 'etudiant') {
+        await this.navigateStudentAfterLogin();
+        return;
+      }
+    }
+
+    this.errorMsg = 'Rôle utilisateur non autorisé.';
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    this.isSubmitting = false;
+    this.cdr.detectChanges();
+  }
+
+  private async navigateStudentAfterLogin(): Promise<void> {
+    try {
+      const cv = await this.cvSubmissionService.fetchMyCv();
+      if (cv) {
+        await this.router.navigate(['/home/dashboard']);
+        return;
+      }
+    } catch {
+      // Fall through to onboarding when CV status cannot be resolved.
+    }
+
+    await this.router.navigate(['/home/cv-landing']);
+  }
+
+  private extractError(error: unknown): string {
+    const httpError = error as HttpErrorResponse;
+    const raw = httpError?.error;
+
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      return raw;
+    }
+    if (raw && typeof raw === 'object' && 'message' in raw) {
+      const msg = (raw as { message?: unknown }).message;
+      if (typeof msg === 'string' && msg.trim().length > 0) return msg;
+      if (Array.isArray(msg)) return msg.filter((v) => typeof v === 'string').join(', ');
+    }
+    return '';
   }
 
   private startCooldown(): void {
@@ -93,5 +209,4 @@ export class Verify {
       this.timerInterval = undefined;
     }
   }
-
 }

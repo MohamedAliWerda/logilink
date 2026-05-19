@@ -7,9 +7,6 @@
                     Vos recommandations approuvées par l'administration, classées par priorité.
                 </p>
             </div>
-            <button type="button" class="refresh-btn" (click)="refresh()" [disabled]="loading()">
-                Rafraîchir
-            </button>
         </header>
 
         <section class="summary-row" aria-label="Resume des recommandations">
@@ -42,118 +39,102 @@
             </div>
 
             <div class="score-v2-content">
-                <strong class="score-v2-value">{{ scoreV2PercentLabel() }}</strong>
-                @if (scoreV2Error()) {
-                    <p class="score-v2-error">{{ scoreV2Error() }}</p>
+                <strong class="score-v2-value">{{ scoreV2PercentLabel() }}</strong> @if (scoreV2Error()) {
+                <p class="score-v2-error">{{ scoreV2Error() }}</p>
                 }
             </div>
         </section>
 
         @if (loading()) {
-            <div class="state-box">Chargement des recommandations...</div>
-        }
-
-        @if (!loading() && loadError()) {
-            <div class="state-box error">{{ loadError() }}</div>
-        }
-
-        @if (!loading() && !loadError() && totalRecommendations() === 0) {
-            <div class="state-box">Aucune recommandation validée disponible pour le moment.</div>
-        }
-
-        @if (!loading() && !loadError() && totalRecommendations() > 0) {
-            <div class="level-block">
-                <div class="block-head">
-                    <h2>Recommandations critiques</h2>
-                    <span class="count-chip">{{ critiqueRecommendations().length }}</span>
-                </div>
-                @if (critiqueRecommendations().length === 0) {
-                    <p class="empty-level">Aucune recommandation critique.</p>
-                } @else {
-                    <div class="card-grid">
-                        @for (reco of critiqueRecommendations(); track reco.id) {
-                            <article class="recommendation-card">
-                                <div class="card-top">
-                                    <span class="priority-badge tone-critique">
+        <div class="state-box">Chargement des recommandations...</div>
+        } @if (!loading() && loadError()) {
+        <div class="state-box error">{{ loadError() }}</div>
+        } @if (!loading() && !loadError() && totalRecommendations() === 0) {
+        <div class="state-box">Aucune recommandation validée disponible pour le moment.</div>
+        } @if (!loading() && !loadError() && totalRecommendations() > 0) {
+        <div class="level-block">
+            <div class="block-head">
+                <h2>Recommandations critiques</h2>
+                <span class="count-chip">{{ critiqueRecommendations().length }}</span>
+            </div>
+            @if (critiqueRecommendations().length === 0) {
+            <p class="empty-level">Aucune recommandation critique.</p>
+            } @else {
+            <div class="card-grid">
+                @for (reco of critiqueRecommendations(); track reco.id) {
+                <article class="recommendation-card">
+                    <div class="card-top">
+                        <span class="priority-badge tone-critique">
                                         {{ levelLabel('CRITIQUE') }}
                                     </span>
-                                </div>
-                                <h3>{{ recommendationTitle(reco) }}</h3>
-                                <p class="meta">{{ recommendationContext(reco) }}</p>
-                                <p class="desc">{{ reco.cert_description || reco.llm_recommendation || 'Recommandation pedagogique validee.' }}</p>
-                                <div class="footer-row">
-                                    <span class="provider">{{ reco.cert_provider || 'Fournisseur non precise' }}</span>
-                                </div>
-                                @if (reco.cert_url) {
-                                    <a class="cert-link" [href]="reco.cert_url" target="_blank" rel="noopener">Voir la certification</a>
-                                }
-                            </article>
-                        }
                     </div>
+                    <h3>{{ recommendationTitle(reco) }}</h3>
+                    <p class="meta">{{ recommendationContext(reco) }}</p>
+                    <p class="desc">{{ reco.cert_description || reco.llm_recommendation || 'Recommandation pedagogique validee.' }}</p>
+                    <div class="footer-row">
+                        <span class="provider">{{ reco.cert_provider || 'Fournisseur non precise' }}</span>
+                    </div>
+                </article>
                 }
             </div>
+            }
+        </div>
 
-            <div class="level-block">
-                <div class="block-head">
-                    <h2>Recommandations moyennes</h2>
-                    <span class="count-chip">{{ moyenneRecommendations().length }}</span>
-                </div>
-                @if (moyenneRecommendations().length === 0) {
-                    <p class="empty-level">Aucune recommandation moyenne.</p>
-                } @else {
-                    <div class="card-grid">
-                        @for (reco of moyenneRecommendations(); track reco.id) {
-                            <article class="recommendation-card">
-                                <div class="card-top">
-                                    <span class="priority-badge tone-moyenne">
+        <div class="level-block">
+            <div class="block-head">
+                <h2>Recommandations moyennes</h2>
+                <span class="count-chip">{{ moyenneRecommendations().length }}</span>
+            </div>
+            @if (moyenneRecommendations().length === 0) {
+            <p class="empty-level">Aucune recommandation moyenne.</p>
+            } @else {
+            <div class="card-grid">
+                @for (reco of moyenneRecommendations(); track reco.id) {
+                <article class="recommendation-card">
+                    <div class="card-top">
+                        <span class="priority-badge tone-moyenne">
                                         {{ levelLabel('MOYENNE') }}
                                     </span>
-                                </div>
-                                <h3>{{ recommendationTitle(reco) }}</h3>
-                                <p class="meta">{{ recommendationContext(reco) }}</p>
-                                <p class="desc">{{ reco.cert_description || reco.llm_recommendation || 'Recommandation pedagogique validee.' }}</p>
-                                <div class="footer-row">
-                                    <span class="provider">{{ reco.cert_provider || 'Fournisseur non precise' }}</span>
-                                </div>
-                                @if (reco.cert_url) {
-                                    <a class="cert-link" [href]="reco.cert_url" target="_blank" rel="noopener">Voir la certification</a>
-                                }
-                            </article>
-                        }
                     </div>
+                    <h3>{{ recommendationTitle(reco) }}</h3>
+                    <p class="meta">{{ recommendationContext(reco) }}</p>
+                    <p class="desc">{{ reco.cert_description || reco.llm_recommendation || 'Recommandation pedagogique validee.' }}</p>
+                    <div class="footer-row">
+                        <span class="provider">{{ reco.cert_provider || 'Fournisseur non precise' }}</span>
+                    </div>
+                </article>
                 }
             </div>
+            }
+        </div>
 
-            <div class="level-block">
-                <div class="block-head">
-                    <h2>Recommandations faibles</h2>
-                    <span class="count-chip">{{ faibleRecommendations().length }}</span>
-                </div>
-                @if (faibleRecommendations().length === 0) {
-                    <p class="empty-level">Aucune recommandation faible.</p>
-                } @else {
-                    <div class="card-grid">
-                        @for (reco of faibleRecommendations(); track reco.id) {
-                            <article class="recommendation-card">
-                                <div class="card-top">
-                                    <span class="priority-badge tone-faible">
+        <div class="level-block">
+            <div class="block-head">
+                <h2>Recommandations faibles</h2>
+                <span class="count-chip">{{ faibleRecommendations().length }}</span>
+            </div>
+            @if (faibleRecommendations().length === 0) {
+            <p class="empty-level">Aucune recommandation faible.</p>
+            } @else {
+            <div class="card-grid">
+                @for (reco of faibleRecommendations(); track reco.id) {
+                <article class="recommendation-card">
+                    <div class="card-top">
+                        <span class="priority-badge tone-faible">
                                         {{ levelLabel('FAIBLE') }}
                                     </span>
-                                </div>
-                                <h3>{{ recommendationTitle(reco) }}</h3>
-                                <p class="meta">{{ recommendationContext(reco) }}</p>
-                                <p class="desc">{{ reco.cert_description || reco.llm_recommendation || 'Recommandation pedagogique validee.' }}</p>
-                                <div class="footer-row">
-                                    <span class="provider">{{ reco.cert_provider || 'Fournisseur non precise' }}</span>
-                                </div>
-                                @if (reco.cert_url) {
-                                    <a class="cert-link" [href]="reco.cert_url" target="_blank" rel="noopener">Voir la certification</a>
-                                }
-                            </article>
-                        }
                     </div>
+                    <h3>{{ recommendationTitle(reco) }}</h3>
+                    <p class="meta">{{ recommendationContext(reco) }}</p>
+                    <p class="desc">{{ reco.cert_description || reco.llm_recommendation || 'Recommandation pedagogique validee.' }}</p>
+                    <div class="footer-row">
+                        <span class="provider">{{ reco.cert_provider || 'Fournisseur non precise' }}</span>
+                    </div>
+                </article>
                 }
             </div>
+            }
+        </div>
         }
     </section>
 </div>

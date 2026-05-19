@@ -3,7 +3,9 @@ import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { SupabaseService } from '../../../services/supabase.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { AuthApiService } from '../../../auth/services/auth-api.service';
+
 @Component({
   selector: 'app-login-entreprise',
   standalone: true,
@@ -24,7 +26,7 @@ export class LoginEntrepriseComponent {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private readonly supabase: SupabaseService,
+    private readonly authApiService: AuthApiService,
     private readonly cdr: ChangeDetectorRef,
   ) {
     this.loginForm = this.fb.group({
@@ -56,53 +58,63 @@ export class LoginEntrepriseComponent {
     const { email, password } = this.loginForm.value;
 
     try {
-      // First check if email exists
-      const emailExists = await this.supabase.checkSocieteEmailExists(email);
-      
-      // Then try to login with both credentials
-      const societe: any = await this.supabase.findSocieteByCredentials(email, password);
-      
-      if (!societe) {
-        // Email doesn't exist OR password is wrong
-        if (!emailExists) {
-          this.emailError = 'Cet email n\'existe pas.';
-        } else {
-          // Email exists but password doesn't match
-          this.passwordError = 'Le mot de passe est incorrect.';
-        }
-        this.isSubmitting = false;
-        this.cdr.detectChanges();
-        return;
-      }
+      const response = await this.authApiService.signInEntreprise(email, password);
+      const { challengeId, email: maskedEmail, type } = response.data;
 
-      const situation = (societe.situation ?? '').toString().toLowerCase();
-      if (situation.includes('en attente') || situation.includes('en_attente')) {
-        // Block access until admin validation
-        this.isSubmitting = false;
-        this.pendingNotice = 'Votre compte est en attente de validation par un administrateur. L\'accès est bloqué jusqu\'à la validation.';
-        this.cdr.detectChanges();
-        this.schedulePendingNoticeClear();
-        return;
-      }
-
-      if (situation.includes('valid') || situation.includes('validée') || situation.includes('validee')) {
-        // Successful login — persist minimal info and navigate
-        localStorage.setItem('entreprise', JSON.stringify(societe));
-        localStorage.setItem('role', 'entreprise');
-        await this.router.navigate(['/entreprise/offres']);
-        return;
-      }
-
-      // Fallback: deny access
-      this.isSubmitting = false;
-      this.authError = 'Votre compte n\'est pas autorisé à accéder pour le moment.';
-      this.cdr.detectChanges();
+      await this.router.navigate(['/verify'], {
+        state: {
+          challengeId,
+          email: maskedEmail,
+          type,
+          redirectFlow: 'entreprise',
+        },
+      });
     } catch (err: any) {
-      console.error('Login error', err);
-      this.authError = 'Erreur lors de la connexion. Veuillez réessayer.';
+      const httpError = err as HttpErrorResponse;
+      const serverMessage = this.extractErrorMessage(err);
+
+      if (httpError.status === 401) {
+        const message = (serverMessage || '').toLowerCase();
+        if (message.includes('email') || message.includes('existe')) {
+          this.emailError = serverMessage || "Cet email n'existe pas.";
+        } else if (message.includes('mot de passe') || message.includes('password')) {
+          this.passwordError = serverMessage || 'Le mot de passe est incorrect.';
+        } else {
+          this.authError = serverMessage || 'Identifiant ou mot de passe incorrect.';
+        }
+      } else if (httpError.status === 403) {
+        this.pendingNotice = serverMessage || "Votre compte est en attente de validation par un administrateur.";
+        this.schedulePendingNoticeClear();
+      } else if (httpError.status === 0) {
+        this.authError = 'Connexion impossible. Veuillez réessayer.';
+      } else {
+        this.authError = serverMessage || 'Erreur lors de la connexion. Veuillez réessayer.';
+      }
+    } finally {
       this.isSubmitting = false;
       this.cdr.detectChanges();
     }
+  }
+
+  private extractErrorMessage(error: unknown): string {
+    const httpError = error as HttpErrorResponse;
+    const raw = httpError?.error;
+
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      return raw;
+    }
+
+    if (raw && typeof raw === 'object' && 'message' in raw) {
+      const msg = (raw as { message?: unknown }).message;
+      if (typeof msg === 'string' && msg.trim().length > 0) {
+        return msg;
+      }
+      if (Array.isArray(msg)) {
+        return msg.filter((v) => typeof v === 'string').join(', ');
+      }
+    }
+
+    return '';
   }
 
   private clearPendingNotice(): void {

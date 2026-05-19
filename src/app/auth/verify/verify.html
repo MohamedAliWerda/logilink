@@ -74,7 +74,9 @@
 
       <p class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</p>
 
-      <button class="login-btn" (click)="verify()">Vérifier</button>
+      <button class="login-btn" [disabled]="isSubmitting" (click)="verify()">
+        {{ isSubmitting ? 'Vérification...' : 'Vérifier' }}
+      </button>
 
       <p class="resend-text">
         Vous n'avez pas reçu le code ?

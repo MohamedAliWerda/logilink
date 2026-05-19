@@ -1,10 +1,48 @@
-import { Controller, Get } from '@nestjs/common';
-import { Body, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AncienEtudiantsService } from './ancien-etudiants.service';
+import { MailService } from './mail.service';
+import { getSupabase } from '../config/supabase.client';
 
 @Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class AncienEtudiantsController {
-  constructor(private readonly service: AncienEtudiantsService) {}
+  constructor(
+    private readonly service: AncienEtudiantsService,
+    private readonly mailService: MailService,
+  ) {}
+
+  private async resolveSocieteEmail(societeId: number | string): Promise<{ email: string; nom: string }> {
+    const id = Number(societeId);
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new BadRequestException('societeId invalide');
+    }
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('Societe')
+      .select('id, email, denomination_sociale')
+      .eq('id', id)
+      .maybeSingle<{ email?: string; denomination_sociale?: string }>();
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+    if (!data?.email) {
+      throw new NotFoundException('Société introuvable ou sans email enregistré');
+    }
+    return { email: data.email, nom: data.denomination_sociale ?? 'Société' };
+  }
 
   @Get()
   async findAll() {
@@ -29,5 +67,35 @@ export class AncienEtudiantsController {
   @Post('feedback')
   async createFeedback(@Body() body: Record<string, unknown>) {
     return this.service.createFeedback(body);
+  }
+
+  @Post('ancien-etudiants/send-invitations')
+  async sendInvitations(
+    @Body() body: { subject?: string; message?: string } = {},
+  ) {
+    const subject = (body.subject ?? '').trim() || 'Partagez votre expérience professionnelle - ISGI';
+    const message = (body.message ?? '').trim() || 'Nous aimerions connaître votre parcours professionnel.\n\n[Lien vers le formulaire]';
+    return this.service.sendInvitationsToUncontacted(subject, message);
+  }
+
+  @Post('societe/send-approval-email')
+  async sendApprovalEmail(@Body() body: { societeId: number | string }) {
+    const { email, nom } = await this.resolveSocieteEmail(body?.societeId);
+    await this.mailService.sendCompanyApproval(email, nom);
+    return { success: true };
+  }
+
+  @Post('societe/send-rejection-email')
+  async sendRejectionEmail(@Body() body: { societeId: number | string }) {
+    const { email, nom } = await this.resolveSocieteEmail(body?.societeId);
+    await this.mailService.sendCompanyRejection(email, nom);
+    return { success: true };
+  }
+
+  @Post('societe/send-pending-email')
+  async sendPendingEmail(@Body() body: { societeId: number | string }) {
+    const { email, nom } = await this.resolveSocieteEmail(body?.societeId);
+    await this.mailService.sendCompanyPending(email, nom);
+    return { success: true };
   }
 }

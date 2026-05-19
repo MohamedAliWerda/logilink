@@ -1,24 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { CvPreview } from '../../component/cv-preview/cv-preview';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import {
-  FormBuilder,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import {
   STUDENT_PROFILE_DATA,
   StudentProfileData,
 } from '../../student-profile.data';
+import { environment } from '../../../../../environments/environment';
 
 
 @Component({
   selector: 'app-profil',
-  imports: [CommonModule, ReactiveFormsModule, CvPreview],
+  imports: [CommonModule, CvPreview],
   templateUrl: './profil.html',
   styleUrl: './profil.css',
 })
@@ -27,16 +23,13 @@ export class Profil {
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly formBuilder = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly sanitizer = inject(DomSanitizer);
-  private readonly apiBaseUrl = 'http://localhost:3001';
-  private readonly supabaseUrl = 'https://kayhpmwnerluxfuaalmg.supabase.co';
-  private readonly supabaseAnonKey = 'sb_publishable_LFi0AVotfY1GB3_4hv7hDg_VDy7QVwz';
+  private readonly apiBaseUrl = environment.apiUrl;
+  private readonly supabaseUrl = environment.supabaseUrl;
+  private readonly supabaseAnonKey = environment.supabaseAnonKey;
 
-  protected readonly activeSection = signal<'info' | 'password' | 'mon-cv'>('info');
-  protected readonly passwordSaved = signal(false);
-  protected readonly passwordError = signal<string | null>(null);
+  protected readonly activeSection = signal<'info' | 'mon-cv'>('info');
   protected readonly profileImageUrl = signal<string | null>(null);
   protected readonly profileImageError = signal<string | null>(null);
 
@@ -48,29 +41,14 @@ export class Profil {
   protected infoSectionSubtitle = this.profileData.infoSectionSubtitle;
   protected profileInfoGroups = this.profileData.infoGroups;
 
-  protected readonly passwordForm = this.formBuilder.nonNullable.group({
-    currentPassword: ['', [Validators.required, Validators.minLength(8)]],
-    newPassword: ['', [Validators.required, Validators.minLength(8)]],
-    confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
-  });
-
-  protected readonly passwordsMismatch = computed(() => {
-    const { newPassword, confirmPassword } = this.passwordForm.getRawValue();
-    return newPassword !== confirmPassword;
-  });
-
   constructor() {
     this.route.queryParamMap.subscribe((params) => {
       const section = params.get('section');
-      if (section === 'password') {
-        this.activeSection.set('password');
-      } else if (section === 'mon-cv') {
+      if (section === 'mon-cv') {
         this.activeSection.set('mon-cv');
       } else {
         this.activeSection.set('info');
       }
-      this.passwordSaved.set(false);
-      this.passwordError.set(null);
     });
 
     void this.loadRemoteProfile();
@@ -388,15 +366,6 @@ export class Profil {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { section: null },
-      queryParamsHandling: 'merge',
-    });
-  }
-
-  public showPasswordSection(): void {
-    this.activeSection.set('password');
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { section: 'password' },
       queryParamsHandling: 'merge',
     });
   }
@@ -930,25 +899,4 @@ export class Profil {
     reader.readAsDataURL(file);
   }
 
-  public savePassword(): void {
-    this.passwordSaved.set(false);
-    this.passwordError.set(null);
-
-    if (this.passwordForm.invalid) {
-      this.passwordForm.markAllAsTouched();
-      return;
-    }
-
-    if (this.passwordsMismatch()) {
-      this.passwordError.set('La confirmation du mot de passe ne correspond pas.');
-      return;
-    }
-
-    this.passwordSaved.set(true);
-    this.passwordForm.reset({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
-  }
 }

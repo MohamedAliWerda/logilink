@@ -428,12 +428,15 @@ export class GestionEntrepriseComponent implements OnInit, OnDestroy {
     try {
       // Optimistically remove from en_attente list (instant UI feedback)
       this.entreprisesEnAttente = this.entreprisesEnAttente.filter(e => e.id !== entreprise.id);
-      console.log('🔵 Updating situation to "Validée" for entreprise:', entreprise.id);
-      
-      // Update DB
-      await this.supabase.updateSocieteSituation(entreprise.id, 'Validée');
-      console.log('✅ Successfully validated');
-      
+
+      // Update DB — returns full row including email
+      const updated = await this.supabase.updateSocieteSituation(entreprise.id, 'Validée');
+
+      // Send approval email (fire-and-forget, don't block the UI)
+      this.supabase.sendSocieteApprovalEmail(entreprise.id).catch((err: unknown) => {
+        console.error('Approval email failed (non-blocking):', err);
+      });
+
       // Reload validées list to show the newly validated company
       await this.loadValidees();
     } catch (err) {
@@ -448,14 +451,16 @@ export class GestionEntrepriseComponent implements OnInit, OnDestroy {
     try {
       // Optimistically remove from en_attente list
       this.entreprisesEnAttente = this.entreprisesEnAttente.filter(e => e.id !== entreprise.id);
-      console.log('🔵 Updating situation to "Rejetée" for entreprise:', entreprise.id);
-      
-      // Update DB
-      await this.supabase.updateSocieteSituation(entreprise.id, 'Rejetée');
-      console.log('✅ Successfully rejected');
+
+      // Update DB — returns full row including email
+      const updated = await this.supabase.updateSocieteSituation(entreprise.id, 'Rejetée');
+
+      // Send rejection email (fire-and-forget)
+      this.supabase.sendSocieteRejectionEmail(entreprise.id).catch((err: unknown) => {
+        console.error('Rejection email failed (non-blocking):', err);
+      });
     } catch (err) {
       console.error('❌ Failed to reject entreprise:', err);
-      // Reload list to restore correct state on error
       await this.refreshData();
     }
   }

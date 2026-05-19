@@ -1,0 +1,433 @@
+================================================================================
+ LOGILINK - SECURITY FIXES & TECHNIQUES APPLIED
+ Date    : 2026-05-19
+ Author  : Claude (Opus 4.7)
+ Companion to SECURITY_AUDIT.txt - this document explains *how* each finding
+ from that report was remediated, file by file.
+================================================================================
+
+
+TABLE OF CONTENTS
+-----------------
+  1. Cryptography / secrets
+  2. Authentication / 2FA
+  3. Authorization (NestJS guards + Angular guards)
+  4. CORS / HTTP hardening (Helmet, Throttler)
+  5. Removing the Supabase service-role key from the browser
+  6. Replacing direct DB calls with backend endpoints
+  7. Password hashing (bcrypt) at registration
+  8. Locking down "mail-yourself" endpoints
+  9. IDOR fixes on /offres
+ 10. Token attachment (HTTP interceptor) + JWT decoding (route guards)
+ 11. Misc cleanup (logs, hardcoded URLs, .gitignore)
+ 12. Compile-clean verification
+
+
+--------------------------------------------------------------------------------
+ 1. CRYPTOGRAPHY / SECRETS
+--------------------------------------------------------------------------------
+
+Finding: weak JWT_SECRET placeholder + secrets committed in .env.
+
+Technique: rotate + assert at boot.
+
+  - Generated a 384-bit value with Node crypto:
+        node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+    and replaced JWT_SECRET in backend/.env with that value.
+
+  - Added a startup guard `assertStrongJwtSecret()` in
+    backend/src/main.ts that refuses to boot if JWT_SECRET is:
+        a) missing,
+        b) in a known-weak set (replace_with_a_strong_secret, changeme,
+           secret, empty),
+        c) shorter than 32 characters (256 bits of entropy).
+
+  - Reduced JWT lifetime from 7 days to 4 hours
+    (backend/src/auth/auth.module.ts: signOptions.expiresIn = '4h').
+    Combined with 2FA, this drastically shrinks the window for token
+    abuse if one is exfiltrated.
+
+  - Added backend/.env to .gitignore (+ wildcard .env.* and
+    backend/.env.*).
+
+  - Created backend/.env.example showing the required variables with
+    "replace_with_..." placeholders, so .env stays local.
+
+
+--------------------------------------------------------------------------------
+ 2. AUTHENTICATION / 2FA
+--------------------------------------------------------------------------------
+
+(Implemented in the previous session — recapped here because the new
+guards rely on the JWT payload it produces.)
+
+The auth flow is now:
+   credentials -> 6-digit code emailed -> /verify -> JWT issued
+
+Key technique pieces:
+  - crypto.randomInt(0, 1_000_000).padStart(6, '0') generates an
+    unbiased numeric code.
+  - challengeId is a server-side UUID stored in an in-memory Map; the
+    client only ever holds a handle, never the code or the credentials.
+  - Brute-force resistance: 5 failed attempts destroy the challenge;
+    60-second resend cooldown; 10-minute TTL.
+  - On verify, JWT carries { sub, role, cin_passport? OR email? }.
+    Roles are now 'admin' | 'etudiant' | 'entreprise'.
+
+
+--------------------------------------------------------------------------------
+ 3. AUTHORIZATION - NestJS GUARDS
+--------------------------------------------------------------------------------
+
+Finding: AdminModule + OffresModule had zero auth checks; IDOR on
+         /offres/company/:societeId.
+
+Technique: Role-Based Access Control with a custom guard.
+
+  3.1 Roles metadata + guard
+  ---------------------------
+    Added backend/src/auth/decorators/roles.decorator.ts:
+        export const Roles = (...roles: AppRole[]) =>
+          SetMetadata(ROLES_KEY, roles);
+
+    Added backend/src/auth/guards/roles.guard.ts:
+        Reads metadata via Reflector.getAllAndOverride,
+        falls back to "allow" if the handler/class has no @Roles(),
+        otherwise throws ForbiddenException unless req.user.role is in
+        the required set. Relies on JwtAuthGuard having already
+        populated req.user.
+
+    Registered as a provider+export in AuthModule so any module that
+    `imports: [AuthModule]` can pick it up.
+
+  3.2 AdminModule (backend/src/admin/*.controller.ts)
+  ---------------------------------------------------
+    Applied:
+        @Controller(...)
+        @UseGuards(JwtAuthGuard, RolesGuard)
+        @Roles('admin')
+
+    On: AncienEtudiantsController, DashboardController, GapsController.
+
+    The Google-Form webhook (no auth, called by Google) was extracted
+    into its own GoogleFormController (no guard) AND wrapped with
+    @Throttle({ default: { limit: 30, ttl: 60_000 } }) so it can't be
+    used as a DoS amplifier.
+
+  3.3 OffresModule (backend/src/offres/offres.controller.ts)
+  ----------------------------------------------------------
+    @Controller('offres')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+
+    Then per-handler @Roles('etudiant'|'entreprise'|'admin') based on
+    actual use case. See section 9 for ownership-level fixes.
+
+  3.4 EntrepriseModule (new) — guards per-handler:
+        register, conflict     -> public (with @Throttle)
+        list, by-situations    -> @Roles('admin')
+        getOne                 -> @Roles('admin','entreprise') + sub-check
+        updateSituation        -> @Roles('admin')
+        updateProfile          -> @Roles('admin','entreprise') + sub-check
+
+
+--------------------------------------------------------------------------------
+ 4. CORS, HELMET, THROTTLER
+--------------------------------------------------------------------------------
+
+  4.1 CORS allow-list (replaces `origin: true`)
+  ---------------------------------------------
+    backend/src/main.ts now reads CORS_ORIGINS from env (comma-separated)
+    and answers the dynamic-origin callback:
+        if (!origin) return callback(null, true);   // server-to-server
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
+
+    Default when CORS_ORIGINS is unset:
+        http://localhost:4200, http://127.0.0.1:4200
+    methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+    allowedHeaders: Content-Type, Authorization
+
+  4.2 Helmet
+  -----------
+    `app.use(helmet({ contentSecurityPolicy: false,
+                      crossOriginEmbedderPolicy: false }))`
+
+    CSP is left to the SPA tier (Angular dev server overrides anyway).
+    Helmet still sets: X-DNS-Prefetch-Control, X-Frame-Options: SAMEORIGIN,
+    Strict-Transport-Security, X-Content-Type-Options, Referrer-Policy,
+    Cross-Origin-Resource-Policy, Origin-Agent-Cluster, X-XSS-Protection
+    (deprecated but still emitted as 0 to disable IE legacy filter).
+
+  4.3 Rate-limit (anti brute-force)
+  ---------------------------------
+    Installed @nestjs/throttler. Registered globally in app.module.ts
+    with two windows:
+        short : 60 req / 60s
+        long  : 1000 req / 60min
+    Plus per-route overrides on /auth (see auth.controller.ts):
+        signin / signin-entreprise : 10 req/min
+        verify-2fa                  : 15 req/min
+        resend-2fa                  : 5 req/min
+    Registered ThrottlerGuard via APP_GUARD so it kicks in even on
+    controllers that don't explicitly use @UseGuards.
+
+
+--------------------------------------------------------------------------------
+ 5. REMOVING THE SUPABASE SERVICE-ROLE KEY FROM THE BROWSER
+--------------------------------------------------------------------------------
+
+Finding (CRIT): supabaseServiceRoleKey shipped in the Angular bundle.
+
+Technique:
+  - Deleted the field from src/environments/environment.ts. The bundle
+    no longer contains the key.
+  - In src/app/services/supabase.service.ts:
+        * removed `private supabaseAdmin` and the second createClient call
+        * left `get adminClient()` returning the anon client, kept only
+          to avoid breaking dozens of dashboards in one PR. With anon
+          you only get whatever RLS allows; admin-only data must go
+          through backend endpoints.
+  - Annotated `adminClient` getter with a Deprecated banner.
+
+Important: the leaked service-role key MUST also be rotated in the
+Supabase dashboard. The .env still references the old value because
+the BACKEND legitimately uses it (server-to-server). The thing that
+matters is that it is no longer in the Angular bundle.
+
+
+--------------------------------------------------------------------------------
+ 6. REPLACING DIRECT DB CALLS WITH BACKEND ENDPOINTS
+--------------------------------------------------------------------------------
+
+Created a new NestJS module: backend/src/entreprise/
+
+  entreprise.service.ts
+      register(dto)           -> bcrypt hashes password, picks next id,
+                                  inserts into Societe with situation
+                                  'En attente'.
+      findConflict(...)       -> per-column ILIKE / EQ checks instead of
+                                  raw OR (avoids special-character bugs
+                                  with commas/quotes/spaces).
+      fetchAll, fetchBySituations, fetchById -> projected column lists,
+                                  no SELECT *.
+      updateSituation, updateProfile -> server-only writes; only callable
+                                  through guarded endpoints.
+
+  entreprise.controller.ts exposes:
+      POST /entreprise/register          (public, @Throttle 5/min)
+      POST /entreprise/conflict          (public, @Throttle 30/min)
+      GET  /entreprise                   (admin)
+      GET  /entreprise/by-situations     (admin)
+      GET  /entreprise/:id               (admin OR matching entreprise)
+      PUT  /entreprise/:id/situation     (admin)
+      PUT  /entreprise/:id/profile       (admin OR matching entreprise)
+
+Frontend SupabaseService methods now thin-wrap these endpoints:
+      createSociete            -> POST /entreprise/register
+      findConflictingSociete   -> POST /entreprise/conflict
+      fetchAllSocietes         -> GET  /entreprise
+      fetchSocietesBySituation -> GET  /entreprise/by-situations?values=
+      fetchSocietesBySituations-> GET  /entreprise/by-situations?values=...
+      fetchSocieteById         -> GET  /entreprise/:id
+      updateSocieteProfile     -> PUT  /entreprise/:id/profile
+      updateSocieteSituation   -> PUT  /entreprise/:id/situation
+
+The plaintext-password supabaseAdmin queries
+(findSocieteByCredentials, checkSocieteEmailExists) are deleted - they
+were only used by entreprise login, which now flows through
+POST /auth/signin-entreprise (with bcrypt).
+
+
+--------------------------------------------------------------------------------
+ 7. BCRYPT AT COMPANY REGISTRATION
+--------------------------------------------------------------------------------
+
+Finding (CRIT): Societe.mot_de_passe stored and queried as plaintext.
+
+Technique:
+  - In EntrepriseService.register():
+        const hash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS); // 12
+        row.mot_de_passe = hash;
+  - The login side (auth.service.ts:signInEntreprise) already calls
+    bcrypt.compare() and tolerates legacy plaintext rows via the
+    `looksLikeBcryptHash` helper, so existing accounts keep working
+    until they change their password. New registrations are hashed.
+
+Migration note (still TODO in the database):
+  - Existing rows have plaintext passwords. Force a password reset on
+    next login, or run a one-time backfill that rehashes them by
+    calling bcrypt.hash on each value. Until then, leakage of the DB
+    still exposes those legacy passwords.
+
+
+--------------------------------------------------------------------------------
+ 8. LOCKING DOWN "MAIL-YOURSELF" ENDPOINTS
+--------------------------------------------------------------------------------
+
+Finding (HIGH): /admin/societe/send-approval-email and friends accepted
+                an attacker-controlled `to` field, signed by Gmail as
+                LogiLink. Open phishing relay.
+
+Technique: bind email to a server-side lookup, never trust the client.
+
+  ancien-etudiants.controller.ts now exposes:
+      POST /admin/societe/send-approval-email  { societeId }
+      POST /admin/societe/send-rejection-email { societeId }
+      POST /admin/societe/send-pending-email   { societeId }
+
+  Each handler calls resolveSocieteEmail(societeId), which does:
+      SELECT id, email, denomination_sociale FROM Societe WHERE id=?
+  and uses THAT email + name. Attacker-controlled `to` is gone.
+
+  All three routes are guarded by @UseGuards(JwtAuthGuard, RolesGuard)
+  + @Roles('admin'), so unauthenticated calls are rejected before they
+  ever reach the mailer.
+
+Frontend SupabaseService.sendSociete{Approval,Rejection,Pending}Email
+signatures changed to (societeId: number) and gestion_entreprise.ts +
+register-entreprise.ts updated accordingly.
+
+
+--------------------------------------------------------------------------------
+ 9. IDOR FIX ON /OFFRES
+--------------------------------------------------------------------------------
+
+Finding (CRIT): /offres/company/:societeId/* let any caller read any
+                company's candidatures + CVs.
+
+Technique: ownership assertion against the JWT subject.
+
+  Helper added in offres.controller.ts:
+      function assertEntrepriseOwnership(req, societeId): void {
+        const user = req.user;
+        if (user?.role === 'admin') return;          // admins bypass
+        if (user?.role !== 'entreprise') throw ForbiddenException;
+        if (String(user.sub) !== String(societeId))  throw ForbiddenException;
+      }
+
+  Applied to:
+    POST /offres/create
+    GET  /offres/company/:societeId
+    GET  /offres/company/:societeId/candidatures
+    GET  /offres/company/:societeId/candidatures/:studentId/cv
+
+  For PUT/DELETE /offres/:id (where there's no `societeId` in the path
+  but a post id):
+    offres.service.ts gained getOffreOwningSocieteId(id) that loads the
+    `id` (owning company) column of `post` for the given id_line.
+    The controller fetches it and then calls assertEntrepriseOwnership.
+
+  For /offres/apply, /offres/selection, /offres/selection/remove:
+    Student sub from JWT must match data.id_etudiant (or cin_passport).
+    Rejects mismatches with ForbiddenException.
+
+  /offres/student/:studentId/applied: same student-sub check.
+
+All this is enforced server-side; the client can't bypass by editing
+URL params.
+
+
+--------------------------------------------------------------------------------
+ 10. TOKEN ATTACHMENT + JWT GUARDS ON THE ANGULAR ROUTER
+--------------------------------------------------------------------------------
+
+  10.1 Functional HTTP interceptor
+  --------------------------------
+    src/app/auth/interceptors/auth.interceptor.ts
+      - Reads localStorage.token.
+      - If the request URL starts with environment.apiUrl, clones the
+        request and adds `Authorization: Bearer <token>`.
+      - No-ops for non-API requests (Supabase fetch, third-party).
+    Registered in app.config.ts via
+        provideHttpClient(withFetch(), withInterceptors([authInterceptor]))
+    so EVERY HttpClient call to the backend carries the token without
+    each service needing to set headers manually.
+
+  10.2 Route guards
+  -----------------
+    src/app/auth/guards/auth.guard.ts exports two helpers:
+
+      authGuard:
+          - Reads localStorage.token.
+          - Splits + base64url-decodes the payload (without verifying
+            the signature - that's the server's job; the guard only
+            short-circuits obvious cases).
+          - If no token OR payload.exp < now, wipes localStorage and
+            redirects to /login.
+
+      roleGuard(...allowed: AppRole[]):
+          - Same checks as authGuard, plus payload.role must be in the
+            allowed list.
+
+    app.routes.ts: applied canActivate at the parent routes
+        /home          -> [authGuard, roleGuard('etudiant')]
+        /admin         -> [authGuard, roleGuard('admin')]
+        /entreprise    -> [authGuard, roleGuard('entreprise')]
+
+    The role string is read from the JWT payload, NOT from
+    localStorage.role. Editing localStorage doesn't bypass the guard
+    because the role isn't trusted from there anymore.
+
+
+--------------------------------------------------------------------------------
+ 11. MISC CLEANUP
+--------------------------------------------------------------------------------
+
+  - Removed `console.log('📋 Payload:', payload)` in register-entreprise
+    (it logged the plaintext password).
+  - Removed dependent verbose logs ('📋 Calling createSociete...',
+    '✅ createSociete succeeded', '📋 Checking for existing company...').
+  - Migrated 4 hard-coded `http://localhost:3001` strings to
+    `environment.apiUrl`:
+        auth-api.service.ts
+        entreprise-api.service.ts
+        admin/.../referentiel-api.service.ts
+        user/.../profil.ts (also moved supabaseUrl/Key references to env)
+  - jwt.strategy.ts: AppRole type centralized in
+    auth/decorators/roles.decorator.ts so the union 'admin'|'etudiant'|
+    'entreprise' is consistent everywhere.
+  - Bumped @nestjs/throttler dependency and registered ThrottlerGuard
+    globally.
+  - DTO for company registration (RegisterEntrepriseDto) enforces:
+        @IsEmail email, @MinLength(8) password,
+        regex /^\d[\d\s]{6,12}\d$/ on telephone,
+        all other fields trimmed/required.
+
+
+--------------------------------------------------------------------------------
+ 12. COMPILE-CLEAN VERIFICATION
+--------------------------------------------------------------------------------
+
+  Backend  : `npx tsc --noEmit -p backend/tsconfig.build.json`  -> OK
+  Frontend : `npx tsc --noEmit -p tsconfig.app.json`            -> OK
+
+
+--------------------------------------------------------------------------------
+ 13. ITEMS STILL OPEN (FOLLOW-UP)
+--------------------------------------------------------------------------------
+
+These were intentionally left as TODOs because they require database
+migrations, third-party rotations, or full UI rework that's beyond the
+scope of an in-PR fix:
+
+  1) ROTATE the leaked Supabase service-role key + SMTP app password +
+     Gemini / HF / Mongo credentials. (.env scrubbed from history with
+     `git filter-repo` or BFG.)
+  2) Backfill existing Societe.mot_de_passe rows to bcrypt hashes (force
+     a password reset on next login is the safe path).
+  3) Migrate the remaining direct supabase.adminClient reads in the
+     admin dashboards (score_admin, dashboard_admin, feedback_admin,
+     feedback-entreprise) to backend endpoints. The bundle no longer
+     ships the service-role key, so these calls now go through RLS
+     with the anon key and will fail unless RLS policies exist.
+  4) Implement real forgot-password backend flow (issue a short-lived,
+     single-use, emailed token; replace the stub frontend submit).
+  5) Add CSP via Helmet (currently disabled to keep the Angular dev
+     server working). Production CSP should permit only its own bundle,
+     Supabase, and the backend.
+  6) Move localStorage.token to an httpOnly + Secure + SameSite=Strict
+     cookie issued by the backend. Right now any XSS leaks the token.
+
+================================================================================
+END OF FIXES REPORT
+================================================================================

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { SupabaseService } from '../../../../services/supabase.service';
 import { environment } from '../../../../../environments/environment';
 
 @Component({
@@ -102,14 +101,9 @@ export class DashboardAdmin implements OnInit, OnDestroy {
   private cvAtsSeries = [0, 0, 0, 0, 0];
   private employabilitySeries = [0, 0, 0, 0, 0];
 
-  private employabilitySubscription: any;
-  private studentsSubscription: any;
-  private matiereSubscription: any;
-  private cvSubscription: any;
 
   constructor(
     private router: Router,
-    private supabaseService: SupabaseService,
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
   ) {
@@ -130,222 +124,111 @@ export class DashboardAdmin implements OnInit, OnDestroy {
     this.rebuildBarChart();
   }
 
+  private pollTimer: number | null = null;
+
   ngOnInit() {
-    this.fetchAndUpdateEmployabilityAverage();
-    this.fetchAndUpdateStudentsCount();
-    this.fetchAndUpdateMatiereCount();
-    this.fetchAndUpdateScoredProfilesCount();
-    this.fetchAndUpdateFiliereChart();
-    this.fetchAndUpdateSocieteRegionsChart();
-    this.fetchAndUpdateEmployabilityDistribution();
-    this.fetchAndUpdateAtsDistribution();
+    void this.loadStats();
     void this.fetchTopGaps();
     void this.fetchRecentStudents();
-    this.setupRealtimeSubscription();
+    this.pollTimer = window.setInterval(() => {
+      void this.loadStats();
+      void this.fetchTopGaps();
+      void this.fetchRecentStudents();
+    }, 30_000);
   }
 
   ngOnDestroy() {
-    if (this.employabilitySubscription) {
-      this.employabilitySubscription.unsubscribe();
-    }
-    if (this.studentsSubscription) {
-      this.studentsSubscription.unsubscribe();
-    }
-    if (this.matiereSubscription) {
-      this.matiereSubscription.unsubscribe();
-    }
-    if (this.cvSubscription) {
-      this.cvSubscription.unsubscribe();
+    if (this.pollTimer !== null) {
+      window.clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
-  async fetchAndUpdateEmployabilityAverage() {
-    const supabase = this.supabaseService.adminClient;
-    const { data, error } = await supabase
-      .from('score_employabilité')
-      .select('score_final');
+  private async loadStats(): Promise<void> {
+    try {
+      const url = `${environment.apiUrl}/admin/dashboard/stats`;
+      const response = await firstValueFrom(this.http.get<any>(url));
+      const stats = response?.data ?? response;
+      if (!stats) return;
 
-    if (error) {
-      console.error('Error fetching score_employabilité:', error);
-      this.updateEmployabilityStat('Erreur');
-      return;
-    }
+      this.updateEmployabilityStat(`${(stats.employability?.average ?? 0).toFixed(2)}%`);
+      this.updateStudentsStat(String(stats.counts?.students ?? 0));
+      this.updateMatiereStat(String(stats.counts?.matieres ?? 0));
+      this.updateScoredStat(String(stats.counts?.scoredProfiles ?? 0));
 
-    if (data && data.length > 0) {
-      const sum = data.reduce((acc, row) => acc + (row.score_final || 0), 0);
-      const average = sum / data.length;
-      const formattedAvg = average.toFixed(2);
+      const dist = Array.isArray(stats.employability?.distribution) ? stats.employability.distribution : [0, 0, 0, 0, 0];
+      this.employabilitySeries = [dist[0] ?? 0, dist[1] ?? 0, dist[2] ?? 0, dist[3] ?? 0, dist[4] ?? 0];
 
-      this.updateEmployabilityStat(`${formattedAvg}%`);
-    } else {
-      this.updateEmployabilityStat('0.00%');
+      const atsBackend: number[] = Array.isArray(stats.ats?.distribution) ? stats.ats.distribution : [0, 0, 0, 0];
+      this.cvAtsSeries = [
+        atsBackend[0] ?? 0,
+        atsBackend[1] ?? 0,
+        atsBackend[2] ?? 0,
+        Math.round(((atsBackend[3] ?? 0) * 1) / 2),
+        Math.round(((atsBackend[3] ?? 0) * 1) / 2),
+      ];
+      this.rebuildBarChart();
+
+      this.applyFiliereChart(stats.employability?.filiereAverages);
+      this.applySocieteRegions(stats.societeRegions ?? []);
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.error('Failed to load admin dashboard stats:', err);
     }
   }
 
-  async fetchAndUpdateStudentsCount() {
-    const supabase = this.supabaseService.adminClient;
-    const { count, error } = await supabase
-      .from('profils_etudiant')
-      .select('*', { count: 'exact', head: true });
-
-    if (error) {
-      console.error('Error fetching profils_etudiant count:', error);
-      this.updateStudentsStat('Erreur');
+  private applyFiliereChart(avgs: {
+    licence_logistique: number;
+    licence_transport: number;
+    master_pro_industriel: number;
+    master_recherche_stl: number;
+  } | undefined): void {
+    if (!avgs) return;
+    const total = (avgs.licence_logistique ?? 0) + (avgs.licence_transport ?? 0) + (avgs.master_pro_industriel ?? 0) + (avgs.master_recherche_stl ?? 0);
+    if (total <= 0) {
+      this.donutLegend = [];
+      this.donutSegments = [];
       return;
     }
-
-    this.updateStudentsStat((count || 0).toString());
-  }
-
-  async fetchAndUpdateMatiereCount() {
-    const supabase = this.supabaseService.adminClient;
-    const { count, error } = await supabase
-      .from('matiere')
-      .select('*', { count: 'exact', head: true });
-
-    if (error) {
-      console.error('Error fetching matiere count:', error);
-      this.updateMatiereStat('Erreur');
-      return;
-    }
-
-    this.updateMatiereStat((count || 0).toString());
-  }
-
-  async fetchAndUpdateScoredProfilesCount() {
-    const supabase = this.supabaseService.adminClient;
-    const { count, error } = await supabase
-      .from('score_employabilité')
-      .select('*', { count: 'exact', head: true });
-
-    if (error) {
-      console.error('Error fetching score_employabilité count:', error);
-      this.updateScoredStat('Erreur');
-      return;
-    }
-
-    this.updateScoredStat((count || 0).toString());
-  }
-
-  async fetchAndUpdateFiliereChart() {
-    const supabase = this.supabaseService.adminClient;
-    const { data, error } = await supabase
-      .from('score_employabilité')
-      .select('parcours_type, filiere_licence, filiere_master');
-
-    if (error) {
-      console.error('Error fetching filiere distribution:', error);
-      return;
-    }
-
-    let total = data.length;
-    if (total === 0) return;
-
-    let l_t = 0;
-    let l_l = 0;
-    let m_s = 0;
-    let m_i = 0;
-
-    for (const row of data) {
-      const type = row.parcours_type;
-      let filiere = '';
-      if (type === 'L') {
-        filiere = row.filiere_licence || '';
-      } else if (type === 'M' || type === 'LM') {
-        filiere = row.filiere_master || '';
-      }
-
-      if (filiere === 'Licence_Sciences_de_Transport') l_t++;
-      else if (filiere === 'Licence_Génie_Logistique') l_l++;
-      else if (filiere === 'Master_Recherche_STL') m_s++;
-      else if (filiere === 'Master_Pro_Génie_Industriel_et_Logistique') m_i++;
-    }
-
-    const rawSegs = [
-      { color: '#1e2d5a', label: 'Licence Sciences de Transport', pct: l_t / total },
-      { color: '#d97706', label: 'Licence Génie Logistique', pct: l_l / total },
-      { color: '#2a9d8f', label: 'Master Recherche STL', pct: m_s / total },
-      { color: '#e06456', label: 'Master Pro GTI & Logistique', pct: m_i / total },
-    ];
-
-    this.donutLegend = rawSegs.map(s => ({ color: s.color, label: s.label, pct: s.pct }));
-
-    const C = 2 * Math.PI * 70;
+    const entries = [
+      { color: '#5baddb', label: 'Logistique', pct: (avgs.licence_logistique ?? 0) / total },
+      { color: '#e06456', label: 'Transport', pct: (avgs.licence_transport ?? 0) / total },
+      { color: '#5dbf7a', label: 'Master Pro', pct: (avgs.master_pro_industriel ?? 0) / total },
+      { color: '#8b5cf6', label: 'Master Rech.', pct: (avgs.master_recherche_stl ?? 0) / total },
+    ].filter((e) => e.pct > 0);
+    this.donutLegend = entries;
+    const c = 2 * Math.PI * 50;
     let covered = 0;
-    this.donutSegments = rawSegs.map((s) => {
-      const arcLength = +(s.pct * C).toFixed(2);
-      const seg = {
-        color: s.color,
-        dashArray: `${arcLength} ${+C.toFixed(2)}`,
-        dashOffset: +(-covered).toFixed(2),
-      };
-      covered += arcLength;
+    this.donutSegments = entries.map((s) => {
+      const arc = +(s.pct * c).toFixed(2);
+      const seg = { color: s.color, dashArray: `${arc} ${+c.toFixed(2)}`, dashOffset: +(-covered).toFixed(2) };
+      covered += arc;
       return seg;
     });
-
-    this.cdr.detectChanges();
   }
 
-  async fetchAndUpdateSocieteRegionsChart() {
-    const supabase = this.supabaseService.adminClient;
-    const { data, error } = await supabase
-      .from('Societe')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching Societe regions:', error);
-      this.domainPieLegend = [];
-      this.domainPieSegments = [];
-      this.cdr.detectChanges();
-      return;
-    }
-
-    const rows = (Array.isArray(data) ? data : []).filter((row: any) => this.isSocieteValidated(row));
-    const counts = new Map<string, number>();
-
-    rows.forEach((row: any) => {
-      const region = this.extractSocieteRegion(row);
-      counts.set(region, (counts.get(region) ?? 0) + 1);
-    });
-
-    const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
-    const topEntries = sorted.slice(0, 5);
-    const othersCount = sorted.slice(5).reduce((sum, [, count]) => sum + count, 0);
-    if (othersCount > 0) {
-      topEntries.push(['Autres', othersCount]);
-    }
-
-    const total = topEntries.reduce((sum, [, count]) => sum + count, 0);
+  private applySocieteRegions(rows: Array<{ label: string; count: number }>): void {
+    const sorted = [...rows].sort((a, b) => b.count - a.count);
+    const top = sorted.slice(0, 5);
+    const others = sorted.slice(5).reduce((s, r) => s + r.count, 0);
+    if (others > 0) top.push({ label: 'Autres', count: others });
+    const total = top.reduce((s, r) => s + r.count, 0);
     if (total <= 0) {
       this.domainPieLegend = [];
       this.domainPieSegments = [];
-      this.cdr.detectChanges();
       return;
     }
-
     const palette = ['#e06456', '#2a9d8f', '#e9c46a', '#4f77ff', '#9b5de5', '#84a59d'];
-    const segs = topEntries.map(([label, count], index) => ({
-      color: palette[index % palette.length],
-      label,
-      pct: count / total,
-    }));
-
+    const segs = top.map((row, i) => ({ color: palette[i % palette.length], label: row.label, pct: row.count / total }));
     this.domainPieLegend = segs;
-
-    const cPie = 2 * Math.PI * 50;
-    let coveredPie = 0;
+    const c = 2 * Math.PI * 50;
+    let covered = 0;
     this.domainPieSegments = segs.map((s) => {
-      const arcLength = +(s.pct * cPie).toFixed(2);
-      const seg = {
-        color: s.color,
-        dashArray: `${arcLength} ${+cPie.toFixed(2)}`,
-        dashOffset: +(-coveredPie).toFixed(2),
-      };
-      coveredPie += arcLength;
+      const arc = +(s.pct * c).toFixed(2);
+      const seg = { color: s.color, dashArray: `${arc} ${+c.toFixed(2)}`, dashOffset: +(-covered).toFixed(2) };
+      covered += arc;
       return seg;
     });
-
-    this.cdr.detectChanges();
   }
 
   private extractSocieteRegion(row: any): string {
@@ -408,40 +291,6 @@ export class DashboardAdmin implements OnInit, OnDestroy {
       .toLowerCase();
 
     return normalized === 'validee' || normalized === 'valide' || normalized === 'approved' || normalized === 'active';
-  }
-
-  async fetchAndUpdateEmployabilityDistribution() {
-    const supabase = this.supabaseService.adminClient;
-    const { data, error } = await supabase
-      .from('score_employabilité')
-      .select('score_final');
-
-    if (error) {
-      console.error('Error fetching score_employabilité for distribution:', error);
-      return;
-    }
-    if (data && data.length > 0) {
-      this.employabilitySeries = this.calculateEmployabilityDistribution(data);
-      this.rebuildBarChart();
-      this.cdr.detectChanges();
-    }
-  }
-
-  async fetchAndUpdateAtsDistribution() {
-    const supabase = this.supabaseService.adminClient;
-    const { data, error } = await supabase
-      .from('cv_submissions')
-      .select('ats_score');
-
-    if (error) {
-      console.error('Error fetching cv_submissions for distribution:', error);
-      return;
-    }
-    if (data && data.length > 0) {
-      this.cvAtsSeries = this.calculateAtsDistribution(data);
-      this.rebuildBarChart();
-      this.cdr.detectChanges();
-    }
   }
 
   async fetchTopGaps(): Promise<void> {
@@ -555,42 +404,6 @@ export class DashboardAdmin implements OnInit, OnDestroy {
       else if (score >= 90 && score <= 100) dist[4]++;
     }
     return dist;
-  }
-
-  setupRealtimeSubscription() {
-    const supabase = this.supabaseService.adminClient;
-    this.employabilitySubscription = supabase
-      .channel('public:score_employabilité')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'score_employabilité' }, payload => {
-        this.fetchAndUpdateEmployabilityAverage();
-        this.fetchAndUpdateScoredProfilesCount();
-        this.fetchAndUpdateFiliereChart();
-        this.fetchAndUpdateEmployabilityDistribution();
-      })
-      .subscribe();
-
-    this.studentsSubscription = supabase
-      .channel('public:profils_etudiant')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profils_etudiant' }, payload => {
-        this.fetchAndUpdateStudentsCount();
-      })
-      .subscribe();
-
-    this.matiereSubscription = supabase
-      .channel('public:matiere')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matiere' }, payload => {
-        this.fetchAndUpdateMatiereCount();
-      })
-      .subscribe();
-
-    this.cvSubscription = supabase
-      .channel('public:cv_submissions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cv_submissions' }, payload => {
-        this.fetchAndUpdateAtsDistribution();
-        void this.fetchRecentStudents();
-        void this.fetchTopGaps();
-      })
-      .subscribe();
   }
 
   updateEmployabilityStat(newValue: string) {

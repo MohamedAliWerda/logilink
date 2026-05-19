@@ -29,12 +29,6 @@ export class Navbar implements OnInit {
     this.sidebarService.open();
 
     // Try to read the logged-in user from localStorage and update the displayed name.
-    function formatNameFromEmail(email: string): string {
-      const local = email.split('@')[0];
-      const parts = local.split(/[._-]+/).filter(Boolean);
-      if (parts.length === 0) return email;
-      return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-    }
 
     try {
       const raw = localStorage.getItem('user');
@@ -43,12 +37,14 @@ export class Navbar implements OnInit {
         if (parsed) {
           const displayNameFromFields =
             (typeof parsed['displayName'] === 'string' && parsed['displayName']) ||
+            ((typeof parsed['prenom'] === 'string' || typeof parsed['nom'] === 'string')
+              ? `${String(parsed['prenom'] ?? '')} ${String(parsed['nom'] ?? '')}`.trim()
+              : undefined) ||
             ((typeof parsed['firstName'] === 'string' || typeof parsed['lastName'] === 'string')
               ? `${String(parsed['firstName'] ?? '')} ${String(parsed['lastName'] ?? '')}`.trim()
               : undefined);
 
-          const email = typeof parsed['email'] === 'string' ? parsed['email'] : undefined;
-          const displayName = displayNameFromFields || (email ? formatNameFromEmail(email) : undefined);
+          const displayName = displayNameFromFields || undefined;
 
           if (displayName) {
             this.user.name = displayName;

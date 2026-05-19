@@ -390,16 +390,11 @@ L'équipe ISGI`;
       }
     }
 
-    // Status detection using columns like 'STATUT INVITATION' and 'RÉPONSE'
-    const statutInv = (row['STATUT INVITATION'] ?? row['STATUT_INVITATION'] ?? row.statut ?? row.status ?? '').toString().toLowerCase();
-    const reponseCol = (row['RÉPONSE'] ?? row['REPONSE'] ?? row.response ?? row.reponse ?? '').toString().toLowerCase();
+    // Status detection: only 'Non contacté' or 'Invité'.
+    const statutInv = (row['STATUT INVITATION'] ?? row['STATUT_INVITATION'] ?? row.statut ?? row.status ?? '').toString().trim().toLowerCase();
     let status: OldStudent['status'] = 'Non contacté';
-    if (reponseCol.includes('répon') || reponseCol.includes('repon') || reponseCol.includes('répondu') || reponseCol.includes('repondu')) {
-      status = 'À répondu';
-    } else if (statutInv.includes('invit') || statutInv.includes('invité')) {
+    if (statutInv.includes('invit')) {
       status = 'Invité';
-    } else if (statutInv.includes('non') || statutInv.includes('non invit')) {
-      status = 'Non contacté';
     }
 
     const employmentStatus = (row.employment_status ?? row['STATUT EMPLOI'] ?? row['STATUT_EMPLOI'] ?? row.statut_emploi) as OldStudent['employmentStatus'];
@@ -1684,31 +1679,56 @@ L'équipe ISGI`;
     return this.oldStudents.filter(s => s.status === 'Non contacté');
   }
 
-  confirmSendEmail(): void {
+  isSendingEmails: boolean = false;
+
+  async confirmSendEmail(): Promise<void> {
     const uncontactedCount = this.getUncontactedStudents().length;
-    
+
     if (uncontactedCount === 0) {
       alert('Aucun ancien diplômé à contacter');
       return;
     }
 
-    if (confirm(`Êtes-vous sûr de vouloir envoyer ${uncontactedCount} email(s) ?\n\nObjet: ${this.emailSubject}`)) {
-      // Simuler l'envoi des emails
-      this.getUncontactedStudents().forEach(student => {
-        student.status = 'Invité';
-        console.log(`Email envoyé à ${student.fullName} (${student.email})`);
+    if (!confirm(`Êtes-vous sûr de vouloir envoyer ${uncontactedCount} email(s) ?\n\nObjet: ${this.emailSubject}`)) {
+      return;
+    }
+
+    this.isSendingEmails = true;
+    this.cdr.markForCheck();
+
+    try {
+      const result = await this.supabaseService.sendAncienEtudiantInvitations({
+        subject: this.emailSubject,
+        message: this.emailMessage,
       });
 
-      this.successMessage = `${uncontactedCount} email(s) envoyé(s) avec succès!`;
-      this.showSuccessNotification = true;
+      const sent = result?.sent ?? 0;
+      const failed = result?.failed ?? 0;
+      const attempted = result?.attempted ?? uncontactedCount;
+
+      if (sent > 0) {
+        this.successMessage = failed > 0
+          ? `${sent}/${attempted} email(s) envoyé(s). ${failed} échec(s).`
+          : `${sent} email(s) envoyé(s) avec succès!`;
+        this.showSuccessNotification = true;
+        setTimeout(() => {
+          this.showSuccessNotification = false;
+          this.cdr.markForCheck();
+        }, 5000);
+      } else {
+        const firstError = result?.errors?.[0]?.reason;
+        alert(`Aucun email envoyé.${firstError ? `\n${firstError}` : ''}`);
+      }
+
       this.showSendEmailModal = false;
-
-      // Masquer la notification après 5 secondes
-      setTimeout(() => {
-        this.showSuccessNotification = false;
-      }, 5000);
-
-      this.scheduleDashboardCharts();
+      await this.refreshAllData();
+    } catch (err) {
+      console.error('Failed to send invitations', err);
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      alert(`Échec de l'envoi des emails : ${message}`);
+    } finally {
+      this.isSendingEmails = false;
+      this.cdr.markForCheck();
     }
   }
 }

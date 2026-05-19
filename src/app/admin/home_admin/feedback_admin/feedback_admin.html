@@ -1,13 +1,8 @@
 <section class="admin-page-container">
     <header class="topbar">
         <div>
-            <h1 class="topbar-title">Gestion des progrès professionnels</h1>
-
-        </div>
-        <div class="topbar-right">
-            <span class="live-dot"></span>
-            <span class="live-label">Temps réel</span>
-            <div class="avatar">A</div>
+            <h1 class="topbar-title">Gestion du progrès professionnels</h1>
+            <p class="topbar-sub">Suivi professionnel des diplômés</p>
         </div>
     </header>
 
@@ -52,7 +47,7 @@
 
         <div class="tabs">
             <button class="tab-btn" [class.active]="activeTab === 'anciens'" (click)="setActiveTab('anciens')">
-                Anciens diplômés
+                Les recrutés
             </button>
             <button class="tab-btn" [class.active]="activeTab === 'retours'" (click)="setActiveTab('retours')">
                 Tableau de bord diplomés
@@ -90,7 +85,6 @@
                             <th (click)="setSort('email')" class="sortable">Email</th>
                             <th (click)="setSort('promotion')" class="sortable">Promotion</th>
                             <th>Statut</th>
-                            <th>Feedback</th>
                             <th>Actions</th>
                     </thead>
                     <tbody>
@@ -107,11 +101,6 @@
                                 </span>
                             </td>
                             <td>
-                                @if (student.status === 'À répondu') {
-                                <span class="badge badge-green">Répondu</span> } @else {
-                                <span class="badge badge-orange">En attente</span> }
-                            </td>
-                            <td>
                                 <div class="actions-cell">
                                     @if (student.status === 'Non contacté') {
                                     <button class="btn btn-ghost btn-sm" type="button" (click)="sendInvitation(student.id)">Envoyer</button> }
@@ -121,7 +110,7 @@
                         </tr>
                         } @empty {
                         <tr>
-                            <td colspan="6">
+                            <td colspan="5">
                                 <div class="empty">
                                     <div class="empty-icon">Aucun résultat</div>
                                     <h3>Aucun ancien diplômé</h3>
@@ -557,8 +546,10 @@
             </div>
 
             <div class="modal-footer">
-                <button class="btn btn-ghost" (click)="closeSendEmailModal()">Annuler</button>
-                <button class="btn btn-orange" (click)="confirmSendEmail()">Envoyer {{ getUncontactedStudents().length }} email(s)</button>
+                <button class="btn btn-ghost" (click)="closeSendEmailModal()" [disabled]="isSendingEmails">Annuler</button>
+                <button class="btn btn-orange" (click)="confirmSendEmail()" [disabled]="isSendingEmails">
+                    {{ isSendingEmails ? 'Envoi en cours...' : 'Envoyer ' + getUncontactedStudents().length + ' email(s)' }}
+                </button>
             </div>
         </div>
     </div>

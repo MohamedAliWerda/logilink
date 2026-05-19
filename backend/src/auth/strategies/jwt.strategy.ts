@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AppRole } from '../decorators/roles.decorator';
 
 export type JwtPayload = {
   sub: string;
-  cin_passport: string;
-  role: 'admin' | 'etudiant';
+  cin_passport?: string;
+  email?: string;
+  role: AppRole;
 };
 
 @Injectable()

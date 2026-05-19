@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClientModule } from '@angular/common/http';
 import { OffresService } from '../../services/offres.service';
 import { Subject } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
@@ -30,7 +29,7 @@ export interface Offre {
 @Component({
   selector: 'app-offres',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './offres.html',
   styleUrls: ['./offres.css'],
   providers: [OffresService],
@@ -293,6 +292,19 @@ export class Offres implements OnInit, OnDestroy {
 
   viewCandidatures(offre: Offre): void {
     this.router.navigate(['/entreprise/candidatures', offre.id]);
+  }
+
+  isFeedbackAvailable(offre: Offre): boolean {
+    const raw = offre.date_creation ?? offre.createdAt;
+    if (!raw) return false;
+    const created = new Date(raw);
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return created <= sixMonthsAgo;
+  }
+
+  openFeedback(offre: Offre): void {
+    this.router.navigate(['/entreprise/feedback'], { queryParams: { postId: offre.id } });
   }
 
   getTimeAgo(date: string | undefined): string {

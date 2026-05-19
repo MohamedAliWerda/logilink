@@ -244,6 +244,19 @@ export class OffresService {
     }
   }
 
+  async getOffreOwningSocieteId(id: string): Promise<number | null> {
+    const idLine = Number(id);
+    if (!Number.isInteger(idLine) || idLine <= 0) return null;
+    const { data, error } = await this.supabase
+      .from('post')
+      .select('id')
+      .eq('id_line', idLine)
+      .maybeSingle();
+    if (error || !data) return null;
+    const owner = Number((data as any).id);
+    return Number.isFinite(owner) ? owner : null;
+  }
+
   async deleteOffre(id: string) {
     try {
       const idLine = Number(id);
@@ -359,6 +372,28 @@ export class OffresService {
         data: null,
       };
     }
+  }
+
+  async getStudentAppliedPostIds(studentId: number): Promise<number[]> {
+    const tableCandidates = ['etudiant_post', 'Etudiant_post'];
+
+    for (const tableName of tableCandidates) {
+      const { data, error } = await this.supabase
+        .from(tableName)
+        .select('id_post')
+        .eq('id_etudiant', studentId);
+
+      if (error) {
+        if (this.isMissingTableError(error.message)) continue;
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      return (Array.isArray(data) ? data : [])
+        .map((row: any) => Number(row?.id_post ?? 0))
+        .filter((id: number) => Number.isInteger(id) && id > 0);
+    }
+
+    return [];
   }
 
   async saveSelection(data: { id_etudiant: number | string; id_post: number | string; id_societe?: number | string }) {

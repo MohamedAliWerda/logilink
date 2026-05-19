@@ -49,6 +49,27 @@
         <img src="djagora-removebg-preview.png" alt="Djagora" class="logo-right">
       </div>
 
+      <!-- Success screen -->
+      <div *ngIf="registrationSuccess" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 16px;gap:20px;">
+        <div style="width:72px;height:72px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h2 style="color:#16a34a;font-size:1.35rem;margin:0;">Compte créé avec succès&nbsp;!</h2>
+        <p style="color:#374151;font-size:0.95rem;line-height:1.6;max-width:360px;margin:0;">
+          Votre compte est <strong>en attente d'approbation</strong> par un administrateur.<br/>
+          Un email de confirmation vous a été envoyé. Vous serez notifié dès que votre compte sera validé.
+        </p>
+        <p style="color:#6b7280;font-size:0.85rem;margin:0;">
+          Redirection vers la page de connexion dans <strong>{{ redirectCountdown }}</strong> seconde{{ redirectCountdown > 1 ? 's' : '' }}…
+        </p>
+        <a routerLink="/entreprise/loginen" style="margin-top:8px;color:#f97316;font-weight:600;text-decoration:none;font-size:0.9rem;">
+          Se connecter maintenant
+        </a>
+      </div>
+
+      <ng-container *ngIf="!registrationSuccess">
       <h2>Créer un compte d'une société</h2>
 
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" novalidate>
@@ -149,7 +170,6 @@
           Le secteur d'activité est obligatoire.
         </span>
 
-        <p *ngIf="registrationSuccess" class="auth-success">{{ successMessage }}</p>
         <p *ngIf="formError" class="auth-error">{{ formError }}</p>
 
         <button class="login-btn" type="submit" [disabled]="isSubmitting">
@@ -165,6 +185,7 @@
         Déjà un compte ?
         <a routerLink="/entreprise/loginen" class="access-switch-btn">Se Connecter</a>
       </p>
+      </ng-container>
     </div>
   </div>
 </div>

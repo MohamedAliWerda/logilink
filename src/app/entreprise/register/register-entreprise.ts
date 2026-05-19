@@ -18,6 +18,7 @@ export class RegisterEntreprise {
   formError: string | null = null;
   registrationSuccess = false;
   successMessage: string | null = null;
+  redirectCountdown = 30;
 
   constructor(
     private readonly fb: FormBuilder,
@@ -129,16 +130,10 @@ export class RegisterEntreprise {
             return formatted ? formatted : '';
           })(raw.telephone, this),
       };
-      console.log('📋 Payload:', payload);
-      
-      // Check if a Societe already exists with any of the identifying fields
-      console.log('📋 Checking for existing company by name/email/phone/address...');
       const conflict: any = await this.supabaseService.findConflictingSociete({
         nomEntreprise: payload.nomEntreprise,
         email: payload.email,
         telephone: payload.telephone,
-        adresse: payload.adresse,
-        description: payload.description,
       });
 
       if (conflict) {
@@ -159,13 +154,25 @@ export class RegisterEntreprise {
         return;
       }
       
-      console.log('📋 Calling createSociete...');
       await this.supabaseService.createSociete(payload);
       clearTimeout(timeoutHandle);
-      console.log('✅ createSociete succeeded');
+
+      this.isSubmitting = false;
       this.registrationSuccess = true;
-      this.successMessage = 'Le compte a été créé avec succès. Il est en attente d\'approbation par un administrateur.';
+      this.redirectCountdown = 30;
       try { this.registerForm.disable(); } catch (e) { /* noop */ }
+      this.cdr.detectChanges();
+
+      // Countdown then redirect
+      const tick = window.setInterval(() => {
+        this.redirectCountdown -= 1;
+        this.cdr.detectChanges();
+        if (this.redirectCountdown <= 0) {
+          window.clearInterval(tick);
+          void this.router.navigate(['/entreprise/loginen']);
+        }
+      }, 1000);
+
     } catch (error: any) {
       clearTimeout(timeoutHandle);
       console.error('❌ Error in onSubmit:', error);

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
 import { OffresEmpService, StudentOffre } from './offres-emp.service';
 
 interface Job {
@@ -37,11 +38,13 @@ interface CompanyJobs {
 export class OffresEmpComponent implements OnInit, OnDestroy {
   searchQuery = '';
   isLoading = false;
+  isPostuling = false;
   errorMessage = '';
   submitMessage = '';
   submitMessageType: 'success' | 'error' = 'success';
   jobs: Job[] = [];
   selectedJob: Job | null = null;
+  appliedJobIds: Set<string> = new Set();
   private readonly offresEmpService = inject(OffresEmpService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
@@ -86,13 +89,16 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
           this.clearLoadWatchdog();
           this.ngZone.run(() => {
             this.jobs = (offres || []).map((offre) => this.toJob(offre));
-            // restore persisted selections for current user
+            // Apply localStorage cache immediately for fast paint, then override from server
             const persisted = this.loadPersistedSelections();
+            this.appliedJobIds = this.loadAppliedIds();
             this.jobs.forEach((j) => {
-              j.selected = persisted.has(String(j.id));
+              j.selected = persisted.has(String(j.id)) && !this.appliedJobIds.has(String(j.id));
             });
             this.isLoading = false;
             this.cdr.detectChanges();
+            // Override with authoritative state from Supabase
+            this.syncAppliedFromServer();
           });
         },
         error: (error) => {
@@ -104,6 +110,34 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
             this.cdr.detectChanges();
           });
         },
+      });
+  }
+
+  private syncAppliedFromServer(): void {
+    const userRaw = localStorage.getItem('user');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    const studentId = Number(user?.id);
+    if (!Number.isInteger(studentId) || studentId <= 0) return;
+
+    this.offresEmpService
+      .fetchStudentAppliedIds(studentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((serverIds) => {
+        this.ngZone.run(() => {
+          const serverSet = new Set(serverIds.map(String));
+          // Sync localStorage cache to match server
+          this.appliedJobIds = serverSet;
+          this.saveAppliedIds(serverSet);
+          const persisted = this.loadPersistedSelections();
+          this.jobs.forEach((j) => {
+            if (serverSet.has(String(j.id))) {
+              j.selected = false;
+              persisted.delete(String(j.id));
+            }
+          });
+          this.savePersistedSelections(persisted);
+          this.cdr.detectChanges();
+        });
       });
   }
 
@@ -191,6 +225,36 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
     }
   }
 
+  private appliedStorageKey(): string {
+    try {
+      const userRaw = localStorage.getItem('user');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      const uid = user?.id ? `user_${user.id}` : 'anon';
+      return `logilink_applied_offres_${uid}`;
+    } catch {
+      return 'logilink_applied_offres_anon';
+    }
+  }
+
+  private loadAppliedIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(this.appliedStorageKey());
+      if (!raw) return new Set<string>();
+      const arr = JSON.parse(raw);
+      return new Set(Array.isArray(arr) ? arr.map((v) => String(v)) : []);
+    } catch {
+      return new Set<string>();
+    }
+  }
+
+  private saveAppliedIds(set: Set<string>): void {
+    try {
+      localStorage.setItem(this.appliedStorageKey(), JSON.stringify(Array.from(set)));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
   private extractPostId(jobId: string): number {
     // Extract numeric ID from potentially composite ID (e.g., "123_456" -> "123")
     const match = String(jobId).match(/^(\d+)/);
@@ -198,6 +262,7 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
   }
 
   toggleJob(job: Job): void {
+    if (this.appliedJobIds.has(String(job.id))) return;
     const newState = !job.selected;
     // optimistic UI change
     job.selected = newState;
@@ -223,12 +288,14 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
             // ok
           },
           error: (err) => {
-            // revert on error
-            job.selected = false;
-            const p = this.loadPersistedSelections();
-            p.delete(String(job.id));
-            this.savePersistedSelections(p);
-            this.showSubmitMessage('error', err?.message || 'Impossible d enregister l offre');
+            this.ngZone.run(() => {
+              job.selected = false;
+              const p = this.loadPersistedSelections();
+              p.delete(String(job.id));
+              this.savePersistedSelections(p);
+              this.showSubmitMessage('error', err?.message || 'Impossible d enregister l offre');
+              this.cdr.detectChanges();
+            });
           }
         });
     } else {
@@ -239,12 +306,14 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
             // ok
           },
           error: (err) => {
-            // revert on error
-            job.selected = true;
-            const p = this.loadPersistedSelections();
-            p.add(String(job.id));
-            this.savePersistedSelections(p);
-            this.showSubmitMessage('error', err?.message || 'Impossible de supprimer l enregistrement');
+            this.ngZone.run(() => {
+              job.selected = true;
+              const p = this.loadPersistedSelections();
+              p.add(String(job.id));
+              this.savePersistedSelections(p);
+              this.showSubmitMessage('error', err?.message || 'Impossible de supprimer l enregistrement');
+              this.cdr.detectChanges();
+            });
           }
         });
     }
@@ -279,6 +348,47 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
       });
   }
 
+  unsubmit(job: Job, event: Event): void {
+    event.stopPropagation();
+
+    const userRaw = localStorage.getItem('user');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    const studentId = Number(user?.id);
+    if (!Number.isInteger(studentId) || studentId <= 0) return;
+
+    const postId = this.extractPostId(job.id);
+
+    // Optimistic: remove applied badge immediately
+    const newApplied = new Set(this.appliedJobIds);
+    newApplied.delete(String(job.id));
+    this.appliedJobIds = newApplied;
+    this.saveAppliedIds(newApplied);
+    this.cdr.detectChanges();
+
+    this.offresEmpService
+      .removeSelection({ id_etudiant: studentId, id_post: postId, id_societe: job.societeId })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.ngZone.run(() => {
+            this.showSubmitMessage('success', 'Candidature retirée avec succès.');
+            this.cdr.detectChanges();
+          });
+        },
+        error: (err) => {
+          this.ngZone.run(() => {
+            // Revert on error
+            const reverted = new Set(this.appliedJobIds);
+            reverted.add(String(job.id));
+            this.appliedJobIds = reverted;
+            this.saveAppliedIds(reverted);
+            this.showSubmitMessage('error', err?.message || 'Impossible de retirer la candidature.');
+            this.cdr.detectChanges();
+          });
+        },
+      });
+  }
+
   postuler(): void {
     const selected = this.selectedJobs;
     if (selected.length === 0) {
@@ -306,6 +416,8 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.isPostuling = true;
+    this.cdr.detectChanges();
     this.offresEmpService
       .applyToOffres({
         id_etudiant: studentId,
@@ -313,15 +425,29 @@ export class OffresEmpComponent implements OnInit, OnDestroy {
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (result) => {
-          // keep selections checked as requested; ensure persisted storage still contains them
-          const persisted = this.loadPersistedSelections();
-          this.selectedJobs.forEach((j) => persisted.add(String(j.id)));
-          this.savePersistedSelections(persisted);
-          this.showSubmitMessage('success', 'Candidature(s) envoyée(s)');
+        next: () => {
+          this.ngZone.run(() => {
+            const persisted = this.loadPersistedSelections();
+            const newApplied = new Set(this.appliedJobIds);
+            selected.forEach((job) => {
+              job.selected = false;
+              persisted.delete(String(job.id));
+              newApplied.add(String(job.id));
+            });
+            this.savePersistedSelections(persisted);
+            this.saveAppliedIds(newApplied);
+            this.appliedJobIds = newApplied;
+            this.isPostuling = false;
+            this.showSubmitMessage('success', 'Candidature(s) envoyée(s) avec succès !');
+            this.cdr.detectChanges();
+          });
         },
         error: (error) => {
-          this.showSubmitMessage('error', error?.message || 'Erreur lors de la candidature.');
+          this.ngZone.run(() => {
+            this.isPostuling = false;
+            this.showSubmitMessage('error', error?.message || 'Erreur lors de la candidature.');
+            this.cdr.detectChanges();
+          });
         },
       });
   }

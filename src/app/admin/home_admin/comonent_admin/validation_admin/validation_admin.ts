@@ -41,6 +41,7 @@ export class ValidationAdmin implements OnInit, OnDestroy {
   levelFilter: LevelFilter = 'all';
   searchQuery = '';
 
+  hasAnyRecommendations = false;
   currentJob: RecommendationJob | null = null;
   private pollTimer: any = null;
 
@@ -71,7 +72,12 @@ export class ValidationAdmin implements OnInit, OnDestroy {
     this.loadError = '';
     try {
       const filter = this.statusFilter === 'all' ? undefined : this.statusFilter;
-      this.recommendations = await this.svc.list(filter);
+      const [filtered, all] = await Promise.all([
+        this.svc.list(filter),
+        this.svc.list(),
+      ]);
+      this.recommendations = filtered;
+      this.hasAnyRecommendations = all.length > 0;
     } catch (err: any) {
       this.loadError = this.formatError(err, 'Impossible de charger les recommandations.');
     } finally {

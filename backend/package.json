@@ -22,15 +22,20 @@
         "@nestjs/jwt": "^11.0.2",
         "@nestjs/passport": "^11.0.5",
         "@nestjs/platform-express": "^11.0.0",
+        "@nestjs/schedule": "^4.1.2",
+        "@nestjs/throttler": "^6.5.0",
         "@supabase/supabase-js": "^2.100.0",
         "bcrypt": "^5.1.1",
         "class-transformer": "^0.5.1",
         "class-validator": "^0.14.4",
         "db": "^6.0.3",
+        "helmet": "^8.1.0",
         "mongo": "^0.1.0",
         "mongodb": "^7.2.0",
+        "nodemailer": "^8.0.7",
         "passport": "^0.7.0",
         "passport-jwt": "^4.0.1",
+        "pg": "^8.21.0",
         "reflect-metadata": "^0.2.2",
         "rxjs": "^7.8.1"
     },
@@ -40,7 +45,9 @@
         "@types/express": "^5.0.0",
         "@types/mongodb": "^4.0.6",
         "@types/node": "^22.10.1",
+        "@types/nodemailer": "^8.0.0",
         "@types/passport-jwt": "^4.0.1",
+        "@types/pg": "^8.20.0",
         "typescript": "^5.7.2"
     }
 }

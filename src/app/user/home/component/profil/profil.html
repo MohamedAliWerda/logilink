@@ -40,8 +40,7 @@
 
         <div class="profil-content-card">
             <div class="section-switcher" role="tablist" aria-label="Sections du profil">
-                <button type="button" class="section-chip" [class.active]="activeSection() === 'info'" (click)="showInfoSection()">Gerer le profil</button>
-                <button type="button" class="section-chip" [class.active]="activeSection() === 'password'" (click)="showPasswordSection()">Changer le mot de passe</button>
+                <button type="button" class="section-chip" [class.active]="activeSection() === 'info'" (click)="showInfoSection()">Consulter le profil</button>
                 <button type="button" class="section-chip" [class.active]="activeSection() === 'mon-cv'" (click)="showReleveNotesSection()">MON CV</button>
             </div>
 
@@ -62,39 +61,6 @@
                         </div>
                     </section>
                 </div>
-            </div>
-
-            <div *ngIf="activeSection() === 'password'" class="content-section password-section">
-                <div class="section-heading">
-                    <h2>Changer le mot de passe</h2>
-                    <p>Mettez a jour votre mot de passe en toute securite.</p>
-                </div>
-
-                <form class="password-form" [formGroup]="passwordForm" (ngSubmit)="savePassword()">
-                    <label class="form-field">
-                        <span>Mot de passe actuel</span>
-                        <input type="password" formControlName="currentPassword" placeholder="Entrez votre mot de passe actuel" />
-                    </label>
-
-                    <label class="form-field">
-                        <span>Nouveau mot de passe</span>
-                        <input type="password" formControlName="newPassword" placeholder="Entrez un nouveau mot de passe" />
-                    </label>
-
-                    <label class="form-field">
-                        <span>Confirmer le nouveau mot de passe</span>
-                        <input type="password" formControlName="confirmPassword" placeholder="Confirmez le nouveau mot de passe" />
-                    </label>
-
-                    <p *ngIf="passwordForm.invalid && passwordForm.touched" class="form-message error">Tous les champs sont obligatoires et doivent contenir au moins 8 caracteres.</p>
-                    <p *ngIf="passwordError()" class="form-message error">{{ passwordError() }}</p>
-                    <p *ngIf="passwordSaved()" class="form-message success">Votre mot de passe a ete mis a jour avec succes.</p>
-
-                    <div class="form-actions">
-                        <button type="button" class="secondary-btn" (click)="showInfoSection()">Retour au profil</button>
-                        <button type="submit" class="primary-btn">Enregistrer</button>
-                    </div>
-                </form>
             </div>
 
             <div *ngIf="activeSection() === 'mon-cv'" class="content-section password-section">

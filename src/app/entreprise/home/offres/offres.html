@@ -1,107 +1,102 @@
 <div class="page-wrapper">
-  <!-- Success/Error Messages -->
-  <div *ngIf="successMessage" class="alert alert-success" role="alert">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Success/Error Messages -->
+    <div *ngIf="successMessage" class="alert alert-success" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-    {{ successMessage }}
-  </div>
+    </svg> {{ successMessage }}
+    </div>
 
-  <div *ngIf="errorMessage" class="alert alert-error" role="alert">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div *ngIf="errorMessage" class="alert alert-error" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="10"></circle>
       <line x1="15" y1="9" x2="9" y2="15"></line>
       <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    {{ errorMessage }}
-  </div>
+    </svg> {{ errorMessage }}
+    </div>
 
-  <div class="page-header">
-    <div class="header-left">
-      <div class="section-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="page-header">
+        <div class="header-left">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="7" width="20" height="14" rx="2" />
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-        GESTION DES OFFRES
-      </div>
-      <h1>Offres d'emploi par société</h1>
-      <p class="page-subtitle">Créez et suivez vos publications en un coup d'œil.</p>
+        </svg> GESTION DES OFFRES
+            </div>
+            <h1>Offres d'emploi par société</h1>
+            <p class="page-subtitle">Créez et suivez vos publications en un coup d'œil.</p>
+        </div>
     </div>
-    <div class="header-right">
-      <div class="search-box">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+    <div class="header-toolbar" aria-label="Recherche et actions">
+        <div class="header-right">
+            <div class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-        <input
-          type="text"
-          placeholder="Rechercher poste, compétence..."
-          [(ngModel)]="searchQuery"
-          (input)="filterOffres()"
-        />
-      </div>
-      <button class="btn-primary" (click)="openCreateModal()">
+                <input type="text" placeholder="Rechercher poste, compétence..." [(ngModel)]="searchQuery" (input)="filterOffres()" />
+            </div>
+            <button class="btn-primary" (click)="openCreateModal()">
         <span>+</span>
         Nouvelle offre
       </button>
+        </div>
     </div>
-  </div>
 
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-card-left">
-        <span class="stat-label">OFFRES ACTIVES</span>
-        <span class="stat-value">{{ offres.length }}</span>
-      </div>
-      <div class="stat-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <span class="stat-label">OFFRES ACTIVES</span>
+                <span class="stat-value">{{ offres.length }}</span>
+            </div>
+            <div class="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="7" width="20" height="14" rx="2"/>
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
         </svg>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-left">
-        <span class="stat-label">CANDIDATURES TOTALES</span>
-        <span class="stat-value">{{ totalCandidatures }}</span>
-      </div>
-      <div class="stat-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <span class="stat-label">CANDIDATURES TOTALES</span>
+                <span class="stat-value">{{ totalCandidatures }}</span>
+            </div>
+            <div class="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
-      </div>
-    </div>
-  </div>
-
-  <!-- Liste des offres -->
-  <div class="offres-list">
-    <div *ngIf="isLoading && filteredOffres.length === 0" class="loading-state">
-      <div class="spinner"></div>
-      Chargement des offres...
+            </div>
+        </div>
     </div>
 
-    <div *ngIf="filteredOffres.length === 0 && !errorMessage" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="1.5">
+    <!-- Liste des offres -->
+    <div class="offres-list">
+        <div *ngIf="isLoading && filteredOffres.length === 0" class="loading-state">
+            <div class="spinner"></div>
+            Chargement des offres...
+        </div>
+
+        <div *ngIf="filteredOffres.length === 0 && !errorMessage" class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="1.5">
         <rect x="2" y="7" width="20" height="14" rx="2" />
         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
       </svg>
-      <p>Aucune offre trouvée</p>
-      <button class="btn-primary" (click)="openCreateModal()">Créer votre première offre</button>
-    </div>
-
-    <div class="offre-card" *ngFor="let offre of filteredOffres">
-      <div class="offre-main">
-        <div class="offre-top">
-          <h3 class="offre-titre">{{ offre.titre }}</h3>
+            <p>Aucune offre trouvée</p>
+            <button class="btn-primary" (click)="openCreateModal()">Créer votre première offre</button>
         </div>
 
-        <div class="offre-meta">
-          <span class="meta-item" *ngIf="offre.entreprise || offre.societe">
+        <div class="offre-card" *ngFor="let offre of filteredOffres">
+            <div class="offre-main">
+                <div class="offre-top">
+                    <h3 class="offre-titre">{{ offre.titre }}</h3>
+                </div>
+
+                <div class="offre-meta">
+                    <span class="meta-item" *ngIf="offre.entreprise || offre.societe">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="7" width="20" height="14" rx="2" />
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -109,9 +104,9 @@
             {{ offre.entreprise || offre.societe }}
           </span>
 
-          <span class="meta-separator" *ngIf="offre.createdAt && (offre.entreprise || offre.societe)">·</span>
+                    <span class="meta-separator" *ngIf="offre.createdAt && (offre.entreprise || offre.societe)">·</span>
 
-          <span class="meta-item" *ngIf="offre.createdAt">
+                    <span class="meta-item" *ngIf="offre.createdAt">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
@@ -119,9 +114,9 @@
             {{ getTimeAgo(offre.createdAt) }}
           </span>
 
-          <span class="meta-separator" *ngIf="offre.createdAt">·</span>
+                    <span class="meta-separator" *ngIf="offre.createdAt">·</span>
 
-          <span class="meta-item candidatures-count" (click)="viewCandidatures(offre)">
+                    <span class="meta-item candidatures-count" (click)="viewCandidatures(offre)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
@@ -130,14 +125,33 @@
             </svg>
             <strong>{{ offre.candidaturesCount || 0 }} candidatures</strong>
           </span>
-        </div>
+                </div>
 
-        <p class="offre-description">{{ offre.description }}</p>
-      </div>
+                <p class="offre-description">{{ offre.description }}</p>
+            </div>
 
-      <div class="offre-actions">
-        
-        <button class="btn-supprimer" (click)="deleteOffre(offre)">
+            <div class="offre-actions">
+
+                <button
+          *ngIf="isFeedbackAvailable(offre)"
+          class="btn-feedback"
+          (click)="openFeedback(offre)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Feedback
+        </button>
+
+                <span *ngIf="!isFeedbackAvailable(offre)" class="feedback-locked" title="Disponible 6 mois après la publication">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Feedback (non disponible)
+        </span>
+
+                <button class="btn-supprimer" (click)="deleteOffre(offre)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -146,63 +160,55 @@
           </svg>
           Supprimer
         </button>
-      </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Modal Créer / Modifier -->
 <div class="modal-overlay" *ngIf="showCreateModal || showEditModal" (click)="closeModals()">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>{{ showEditModal ? "Modifier l'offre" : 'Nouvelle offre' }}</h3>
-      <button class="modal-close" (click)="closeModals()">✕</button>
-    </div>
-
-    <form [formGroup]="offreForm" (ngSubmit)="showEditModal ? submitEditOffre() : submitOffre()">
-      <div class="form-body">
-
-        <label>Titre du poste</label>
-        <input formControlName="titre_poste" placeholder="ex. Développeur Full-Stack" />
-        <div class="form-error" *ngIf="offreForm.get('titre_poste')?.invalid && offreForm.get('titre_poste')?.touched">
-          <span *ngIf="offreForm.get('titre_poste')?.errors?.['required']">Le titre du poste est requis</span>
-          <span *ngIf="offreForm.get('titre_poste')?.errors?.['minlength']">Le titre doit contenir au moins 3 caractères</span>
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>{{ showEditModal ? "Modifier l'offre" : 'Nouvelle offre' }}</h3>
+            <button class="modal-close" (click)="closeModals()">✕</button>
         </div>
 
-        <label>Société</label>
-        <input
-          formControlName="societe"
-          placeholder="Nom de l'entreprise"
-          [class.input-readonly]="offreForm.get('societe')?.disabled"
-        />
-        <div class="form-error" *ngIf="offreForm.get('societe')?.invalid && offreForm.get('societe')?.touched">
-          <span *ngIf="offreForm.get('societe')?.errors?.['required']">Le nom de la société est requis</span>
-          <span *ngIf="offreForm.get('societe')?.errors?.['minlength']">Le nom doit contenir au moins 2 caractères</span>
-        </div>
+        <form [formGroup]="offreForm" (ngSubmit)="showEditModal ? submitEditOffre() : submitOffre()">
+            <div class="form-body">
 
-        <label>Exigences</label>
-        <textarea
-          formControlName="exigences"
-          rows="4"
-          placeholder="Décrivez les exigences du poste..."
-        ></textarea>
-        <div class="form-error" *ngIf="offreForm.get('exigences')?.invalid && offreForm.get('exigences')?.touched">
-          <span *ngIf="offreForm.get('exigences')?.errors?.['required']">Les exigences sont requises</span>
-          <span *ngIf="offreForm.get('exigences')?.errors?.['minlength']">Les exigences doivent contenir au moins 10 caractères</span>
-        </div>
-        <div class="char-count" *ngIf="offreForm.get('exigences')?.value">
-          {{ (offreForm.get('exigences')?.value || '').length }} / 1000 caractères
-        </div>
+                <label>Titre du poste</label>
+                <input formControlName="titre_poste" placeholder="ex. Développeur Full-Stack" />
+                <div class="form-error" *ngIf="offreForm.get('titre_poste')?.invalid && offreForm.get('titre_poste')?.touched">
+                    <span *ngIf="offreForm.get('titre_poste')?.errors?.['required']">Le titre du poste est requis</span>
+                    <span *ngIf="offreForm.get('titre_poste')?.errors?.['minlength']">Le titre doit contenir au moins 3 caractères</span>
+                </div>
 
-      </div>
+                <label>Société</label>
+                <input formControlName="societe" placeholder="Nom de l'entreprise" [class.input-readonly]="offreForm.get('societe')?.disabled" />
+                <div class="form-error" *ngIf="offreForm.get('societe')?.invalid && offreForm.get('societe')?.touched">
+                    <span *ngIf="offreForm.get('societe')?.errors?.['required']">Le nom de la société est requis</span>
+                    <span *ngIf="offreForm.get('societe')?.errors?.['minlength']">Le nom doit contenir au moins 2 caractères</span>
+                </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-annuler" (click)="closeModals()" [disabled]="isSaving">Annuler</button>
-        <button type="submit" class="btn-publier" [disabled]="isSaving || offreForm.invalid">
+                <label>Exigences</label>
+                <textarea formControlName="exigences" rows="4" placeholder="Décrivez les exigences du poste..."></textarea>
+                <div class="form-error" *ngIf="offreForm.get('exigences')?.invalid && offreForm.get('exigences')?.touched">
+                    <span *ngIf="offreForm.get('exigences')?.errors?.['required']">Les exigences sont requises</span>
+                    <span *ngIf="offreForm.get('exigences')?.errors?.['minlength']">Les exigences doivent contenir au moins 10 caractères</span>
+                </div>
+                <div class="char-count" *ngIf="offreForm.get('exigences')?.value">
+                    {{ (offreForm.get('exigences')?.value || '').length }} / 1000 caractères
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-annuler" (click)="closeModals()" [disabled]="isSaving">Annuler</button>
+                <button type="submit" class="btn-publier" [disabled]="isSaving || offreForm.invalid">
           <span *ngIf="isSaving" class="spinner-small"></span>
           {{ isSaving ? 'Enregistrement...' : "Enregistrer l'offre" }}
         </button>
-      </div>
-    </form>
-  </div>
+            </div>
+        </form>
+    </div>
 </div>

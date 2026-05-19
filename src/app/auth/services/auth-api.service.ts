@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
-type UserRole = 'admin' | 'etudiant';
+type UserRole = 'admin' | 'etudiant' | 'entreprise';
 
 type UserProfilePayload = {
   id: string;
@@ -24,12 +25,22 @@ type UserProfilePayload = {
   departement?: string;
 };
 
-type SignInResponse = {
-  success: boolean;
+export type TwoFactorChallengeResponse = {
+  message: string;
+  data: {
+    challengeId: string;
+    email: string;
+    type: UserRole;
+  };
+};
+
+export type VerifyTwoFactorResponse = {
   message: string;
   data: {
     access_token: string;
-    user: UserProfilePayload;
+    role?: UserRole;
+    user?: UserProfilePayload;
+    entreprise?: Record<string, any>;
   };
 };
 
@@ -37,16 +48,43 @@ type SignInResponse = {
   providedIn: 'root',
 })
 export class AuthApiService {
-  private readonly apiBaseUrl = 'http://localhost:3001';
+  private readonly apiBaseUrl = environment.apiUrl;
 
   constructor(private readonly http: HttpClient) {}
 
-  signIn(cinPassport: string, motDePasse: string): Promise<SignInResponse> {
+  signIn(cinPassport: string, motDePasse: string): Promise<TwoFactorChallengeResponse> {
     return firstValueFrom(
-      this.http.post<SignInResponse>(`${this.apiBaseUrl}/auth/signin`, {
+      this.http.post<TwoFactorChallengeResponse>(`${this.apiBaseUrl}/auth/signin`, {
         cin_passport: cinPassport,
         mot_de_passe: motDePasse,
       }),
+    );
+  }
+
+  signInEntreprise(email: string, motDePasse: string): Promise<TwoFactorChallengeResponse> {
+    return firstValueFrom(
+      this.http.post<TwoFactorChallengeResponse>(`${this.apiBaseUrl}/auth/signin-entreprise`, {
+        email,
+        mot_de_passe: motDePasse,
+      }),
+    );
+  }
+
+  verifyTwoFactor(challengeId: string, code: string): Promise<VerifyTwoFactorResponse> {
+    return firstValueFrom(
+      this.http.post<VerifyTwoFactorResponse>(`${this.apiBaseUrl}/auth/verify-2fa`, {
+        challengeId,
+        code,
+      }),
+    );
+  }
+
+  resendTwoFactor(challengeId: string): Promise<{ message: string; data: { email: string } }> {
+    return firstValueFrom(
+      this.http.post<{ message: string; data: { email: string } }>(
+        `${this.apiBaseUrl}/auth/resend-2fa`,
+        { challengeId },
+      ),
     );
   }
 }

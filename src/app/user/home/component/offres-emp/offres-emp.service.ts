@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, timeout } from 'rxjs/operators';
 
 export interface StudentOffre {
@@ -72,6 +72,18 @@ export class OffresEmpService {
           : (error?.error?.error || error?.message || 'Erreur lors de la candidature');
         return throwError(() => new Error(errorMsg));
       }),
+    );
+  }
+
+  fetchStudentAppliedIds(studentId: number): Observable<number[]> {
+    return this.http.get<any>(`${this.apiUrl}/student/${studentId}/applied`).pipe(
+      timeout(10000),
+      map((response) => {
+        const normalized = this.normalizeResponse(response);
+        if (!normalized.success) return [];
+        return Array.isArray(normalized.data) ? normalized.data.map(Number) : [];
+      }),
+      catchError(() => of([])),
     );
   }
 

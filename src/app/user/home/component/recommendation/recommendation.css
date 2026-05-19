@@ -10,46 +10,47 @@
 .recommendation-main {
     border-radius: 18px;
     padding: 1.1rem;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(245, 174, 76, 0.2), transparent 40%),
-        linear-gradient(180deg, #f5f7fb 0%, #f2f4f8 100%);
+    background: radial-gradient(circle at 100% 0%, rgba(245, 174, 76, 0.2), transparent 40%), linear-gradient(180deg, #f5f7fb 0%, #f2f4f8 100%);
     border: 1px solid #e5e8ef;
     box-shadow: 0 6px 20px rgba(22, 31, 52, 0.06);
 }
 
 .recommendation-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    border-radius: 14px;
-    padding: 1rem 1.05rem;
+    border-radius: 16px;
+    padding: 1rem 1.2rem;
     margin: 0 0 1rem;
-    background: #fff7e7;
-    border: 1px solid #f2d7a7;
+    background: linear-gradient(135deg, #fff7eb 0%, #ffe7c5 58%, #ffd9a0 100%);
+    border: 1px solid rgba(224, 120, 0, 0.18);
+    box-shadow: 0 4px 14px rgba(80, 58, 12, 0.08);
 }
 
 .page-title {
     margin: 0;
-    font-size: 1.35rem;
+    font-size: 1.3rem;
     font-weight: 800;
     color: #4f3314;
 }
 
 .page-sub {
-    margin: 0.3rem 0 0;
+    margin: 0.35rem 0 0;
     color: #6f4d24;
     font-size: 0.92rem;
+    line-height: 1.45;
 }
 
 .refresh-btn {
     border: 1px solid #d7b884;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.9);
     color: #6f4d24;
     border-radius: 999px;
     padding: 0.45rem 0.95rem;
     font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 2px 8px rgba(80, 58, 12, 0.08);
 }
 
 .refresh-btn:disabled {
@@ -68,8 +69,7 @@
     margin-bottom: 1rem;
     border-radius: 14px;
     border: 1px solid #cfd9ea;
-    background:
-        linear-gradient(160deg, #f4f8ff 0%, #eef3fb 100%);
+    background: linear-gradient(160deg, #f4f8ff 0%, #eef3fb 100%);
     padding: 0.9rem;
 }
 
@@ -338,16 +338,13 @@
         flex-direction: column;
         align-items: flex-start;
     }
-
     .summary-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
     .score-v2-head {
         flex-direction: column;
         align-items: flex-start;
     }
-
     .card-grid {
         grid-template-columns: 1fr;
     }

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { SupabaseService } from '../../../services/supabase.service';
 
@@ -33,6 +34,14 @@ interface FeedbackForm {
   otherGap: string;
 }
 
+interface EligibleOffre {
+  id: string;
+  titre: string;
+  date_creation: string;
+}
+
+type ScreenState = 'loading' | 'locked' | 'submitted' | 'select' | 'pre-question' | 'declined' | 'form';
+
 @Component({
   selector: 'app-feedback-entreprise',
   standalone: true,
@@ -44,6 +53,10 @@ export class FeedbackEntreprise implements OnInit {
   readonly totalSteps = 7;
   readonly storageKey = 'enterprise-feedback-draft';
   readonly offlineKey = 'enterprise-feedback-offline';
+
+  screenState: ScreenState = 'loading';
+  eligibleOffres: EligibleOffre[] = [];
+  selectedOffre: EligibleOffre | null = null;
 
   currentStep = 0;
   isSubmitting = false;
@@ -114,11 +127,117 @@ export class FeedbackEntreprise implements OnInit {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
-    this.restoreDraft();
     this.loadCompanyInfo();
+    void this.initFeedbackScreen();
+  }
+
+  private async initFeedbackScreen(): Promise<void> {
+    let societeId: number | null = null;
+    try {
+      const raw = localStorage.getItem('entreprise');
+      if (raw) {
+        const societe = JSON.parse(raw) as Record<string, unknown>;
+        const parsed = Number(societe['id']);
+        societeId = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+      }
+    } catch { /* ignore */ }
+
+    if (!societeId) {
+      console.warn('[Feedback] No societeId found in localStorage');
+      this.screenState = 'locked';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    console.log('[Feedback] societeId=', societeId, '| threshold=', sixMonthsAgo.toISOString());
+
+    try {
+      // Posts that are >= 6 months old AND feedback not yet submitted
+      const { data: postData, error: postError } = await this.supabaseService.adminClient
+        .from('post')
+        .select('*')
+        .eq('id', societeId)
+        .lte('date_creation', sixMonthsAgo.toISOString())
+        .neq('feedback_submitted', true);
+
+      console.log('[Feedback] posts query:', { postData, postError });
+      if (postError) throw postError;
+
+      const offres: EligibleOffre[] = (postData || []).map((row: Record<string, unknown>) => ({
+        id: String(row['id_line'] ?? ''),
+        titre: String(
+          row['titre_poste'] ??
+          row['Titre du poste'] ??
+          row['titre'] ??
+          'Offre sans titre'
+        ),
+        date_creation: String(row['date_creation'] ?? ''),
+      })).filter((o: EligibleOffre) => o.id);
+
+      console.log('[Feedback] pending offres:', offres);
+
+      if (offres.length === 0) {
+        // Either no posts >= 6 months, or all of them already have feedback submitted
+        // Check which case it is to show the right screen
+        const { data: anyPost } = await this.supabaseService.adminClient
+          .from('post')
+          .select('id_line')
+          .eq('id', societeId)
+          .lte('date_creation', sixMonthsAgo.toISOString())
+          .limit(1);
+
+        if (anyPost && anyPost.length > 0) {
+          // Posts exist but all submitted
+          this.screenState = 'submitted';
+        } else {
+          // No posts are 6 months old yet
+          this.screenState = 'locked';
+        }
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.eligibleOffres = offres;
+
+      const postIdParam = this.route.snapshot.queryParamMap.get('postId');
+      if (postIdParam) {
+        const match = offres.find(o => o.id === postIdParam);
+        this.selectedOffre = match ?? offres[0];
+      } else if (offres.length === 1) {
+        this.selectedOffre = offres[0];
+      } else {
+        this.screenState = 'select';
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.screenState = 'pre-question';
+    } catch (err) {
+      console.error('[Feedback] Error loading eligible posts:', err);
+      this.screenState = 'locked';
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  selectOffre(offre: EligibleOffre): void {
+    this.selectedOffre = offre;
+    this.screenState = 'pre-question';
+  }
+
+  acceptedStudent(): void {
+    this.restoreDraft();
+    this.screenState = 'form';
+  }
+
+  declinedStudent(): void {
+    this.screenState = 'declined';
   }
 
   get progressPercent(): number {
@@ -244,8 +363,14 @@ export class FeedbackEntreprise implements OnInit {
         .from('feedback_societe')
         .insert([payload]);
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+
+      // Mark post as feedback_submitted so the form locks on next visit
+      if (this.selectedOffre?.id) {
+        await this.supabaseService.adminClient
+          .from('post')
+          .update({ feedback_submitted: true })
+          .eq('id_line', Number(this.selectedOffre.id));
       }
 
       this.submitSuccess = true;
@@ -253,7 +378,7 @@ export class FeedbackEntreprise implements OnInit {
     } catch (err) {
       console.error('Feedback submit error:', err);
       this.persistOffline(payload);
-      this.submitSuccess = true;
+      this.submitSuccess = true; // still show success (saved offline)
     } finally {
       this.isSubmitting = false;
       this.cdr.detectChanges();
@@ -318,6 +443,7 @@ export class FeedbackEntreprise implements OnInit {
 
     return {
       id_soc: societeId,
+      id_post: this.selectedOffre?.id ?? null,
       // eslint-disable-next-line @typescript-eslint/naming-convention
       "1. Quelle est la situation actuelle du diplômé dans votre Société": this.form.q1,
       "2. [Compétences techniques métier]": this.form.ratings.tech,

@@ -23,8 +23,7 @@
 
         @if (loading) {
         <p style="padding: 0.6rem 1rem; color:#44546a; font-size: 0.95rem;">Chargement…</p>
-        }
-        @if (errorMessage && !loading) {
+        } @if (errorMessage && !loading) {
         <p style="padding: 0.6rem 1rem; color:#7B1212; font-size: 0.95rem;">{{ errorMessage }}</p>
         }
 
@@ -44,7 +43,7 @@
             </svg>
                     </th>
                     <th (click)="setSort('filiere')" class="sortable text-center">
-                        Spécialisation
+                        Filière
                         <svg class="sort-indicator" [class.active]="sortColumn === 'filiere'" [class.desc]="sortDirection === 'desc'" viewBox="0 0 24 24">
               <path d="M7 10l5 5 5-5H7z" />
             </svg>

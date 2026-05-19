@@ -1,162 +1,163 @@
 <div class="page-wrapper">
 
-  <!-- Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Espace des sociétés</h1>
-      <p class="page-subtitle">Gérez les sociétés partenaires de la plateforme LogiLink.</p>
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Espace des sociétés</h1>
+            <p class="page-subtitle">Gérez les sociétés partenaires de la plateforme LogiLink.</p>
+        </div>
     </div>
-    <div class="header-actions">
-      <div class="search-box">
-        <svg class="search-icon" viewBox="0 0 20 20" fill="none">
-          <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher une entreprise..." class="search-input" />
-      </div>
-    </div>
-  </div>
 
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon orange">
-        <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+    <div class="header-toolbar" aria-label="Recherche sociétés">
+        <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none">
+        <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+            <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher une entreprise..." class="search-input" />
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
           <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
           <path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-      </div>
-      <div>
-        <div class="stat-value">{{ nbEnAttente }}</div>
-        <div class="stat-label">En attente</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon green">
-        <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+            </div>
+            <div>
+                <div class="stat-value">{{ nbEnAttente }}</div>
+                <div class="stat-label">En attente</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
           <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
           <path d="M6.5 10.5l2.5 2.5 4.5-4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </div>
-      <div>
-        <div class="stat-value">{{ nbValidees }}</div>
-        <div class="stat-label">Validées</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon blue">
-        <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+            </div>
+            <div>
+                <div class="stat-value">{{ nbValidees }}</div>
+                <div class="stat-label">Validées</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
           <polyline points="3,15 7,9 11,12 15,5 17,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </div>
-      <div>
-        <div class="stat-value">{{ totalPostes }}</div>
-        <div class="stat-label">Postes ouverts</div>
-      </div>
+            </div>
+            <div>
+                <div class="stat-value">{{ totalPostes }}</div>
+                <div class="stat-label">Postes ouverts</div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Tabs -->
-  <div class="tabs-bar">
-    <button class="tab-btn" [class.active]="activeTab === 'en_attente'" (click)="activeTab = 'en_attente'">
+    <!-- Tabs -->
+    <div class="tabs-bar">
+        <button class="tab-btn" [class.active]="activeTab === 'en_attente'" (click)="activeTab = 'en_attente'">
       Sociétés en attente
       <span class="tab-badge orange" *ngIf="nbEnAttente > 0">{{ nbEnAttente }} nouvelles</span>
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'validées'" (click)="activeTab = 'validées'">
+        <button class="tab-btn" [class.active]="activeTab === 'validées'" (click)="activeTab = 'validées'">
       Sociétés validées
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'archivées'" (click)="activeTab = 'archivées'">
+        <button class="tab-btn" [class.active]="activeTab === 'archivées'" (click)="activeTab = 'archivées'">
       Historique des sociétés archivées
       <span class="tab-badge grey" *ngIf="nbArchivees > 0">{{ nbArchivees }}</span>
     </button>
-  </div>
-
-  <!-- En attente -->
-  <div class="section-block" *ngIf="activeTab === 'en_attente'">
-    <div class="section-head">
-      <div>
-        <h2 class="section-title">Sociétés en attente</h2>
-        <p class="section-sub">Validation requise</p>
-      </div>
-      <span class="badge-new" *ngIf="nbEnAttente > 0">{{ nbEnAttente }} nouvelles</span>
     </div>
 
-    <div *ngIf="filteredEnAttente.length === 0" class="empty-state">
-      Aucune Société en attente de validation.
-    </div>
-
-    <div class="entreprise-pending-card" *ngFor="let e of filteredEnAttente">
-      <div class="entreprise-info-row">
-        <div class="avatar" [style.background]="e.couleur">{{ e.initiales }}</div>
-        <div class="entreprise-meta">
-          <span class="entreprise-nom">{{ e.nom }}</span>
-          <span class="entreprise-detail">{{ e.secteur }} · {{ e.localisation }} · {{ e.dateAjout }}</span>
+    <!-- En attente -->
+    <div class="section-block" *ngIf="activeTab === 'en_attente'">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Sociétés en attente</h2>
+                <p class="section-sub">Validation requise</p>
+            </div>
+            <span class="badge-new" *ngIf="nbEnAttente > 0">{{ nbEnAttente }} nouvelles</span>
         </div>
-      </div>
-      <div class="pending-actions">
-        <button class="btn-valider" (click)="validerEntreprise(e)">
+
+        <div *ngIf="filteredEnAttente.length === 0" class="empty-state">
+            Aucune Société en attente de validation.
+        </div>
+
+        <div class="entreprise-pending-card" *ngFor="let e of filteredEnAttente">
+            <div class="entreprise-info-row">
+                <div class="avatar" [style.background]="e.couleur">{{ e.initiales }}</div>
+                <div class="entreprise-meta">
+                    <span class="entreprise-nom">{{ e.nom }}</span>
+                    <span class="entreprise-detail">{{ e.secteur }} · {{ e.localisation }} · {{ e.dateAjout }}</span>
+                </div>
+            </div>
+            <div class="pending-actions">
+                <button class="btn-valider" (click)="validerEntreprise(e)">
           <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
             <path d="M3 8l3.5 3.5 6.5-7" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Valider
         </button>
-        <button class="btn-rejeter" (click)="rejeterEntreprise(e)">
+                <button class="btn-rejeter" (click)="rejeterEntreprise(e)">
           <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
             <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
           Rejeter
         </button>
-      </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Validées -->
-  <div class="section-block" *ngIf="activeTab === 'validées'">
-    <div class="section-head">
-      <div>
-        <h2 class="section-title">Sociétés validées</h2>
-        <p class="section-sub">Partenaires actifs sur la plateforme</p>
-      </div>
-      <button class="btn-icon-export">
+    <!-- Validées -->
+    <div class="section-block" *ngIf="activeTab === 'validées'">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Sociétés validées</h2>
+                <p class="section-sub">Partenaires actifs sur la plateforme</p>
+            </div>
+            <button class="btn-icon-export">
         <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
           <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
           <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
-    </div>
+        </div>
 
-    <div *ngIf="filteredValidees.length === 0" class="empty-state">
-      Aucune Société validée trouvée.
-    </div>
+        <div *ngIf="filteredValidees.length === 0" class="empty-state">
+            Aucune Société validée trouvée.
+        </div>
 
-    <div class="entreprises-grid">
-      <div class="entreprise-card" *ngFor="let e of filteredValidees">
-        <div class="card-top">
-          <div class="avatar" [style.background]="e.couleur">{{ e.initiales }}</div>
-          <div class="entreprise-meta">
-            <div class="nom-row">
-              <span class="entreprise-nom">{{ e.nom }}</span>
-              <svg class="verified-icon" viewBox="0 0 16 16" fill="none" width="14" height="14">
+        <div class="entreprises-grid">
+            <div class="entreprise-card" *ngFor="let e of filteredValidees">
+                <div class="card-top">
+                    <div class="avatar" [style.background]="e.couleur">{{ e.initiales }}</div>
+                    <div class="entreprise-meta">
+                        <div class="nom-row">
+                            <span class="entreprise-nom">{{ e.nom }}</span>
+                            <svg class="verified-icon" viewBox="0 0 16 16" fill="none" width="14" height="14">
                 <circle cx="8" cy="8" r="7" fill="#f97316"/>
                 <path d="M5 8l2.5 2.5 3.5-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-            </div>
-            <span class="entreprise-secteur">{{ e.secteur }}</span>
-          </div>
-        </div>
-        <div class="card-stats">
-          <span class="stat-pill">{{ e.nbPostes }} postes</span>
-          <span class="stat-date">Depuis {{ e.dateDepuis }}</span>
-        </div>
-        <div class="card-actions">
-          <button class="btn-voir-postes" (click)="ouvrirPostes(e)">
+                        </div>
+                        <span class="entreprise-secteur">{{ e.secteur }}</span>
+                    </div>
+                </div>
+                <div class="card-stats">
+                    <span class="stat-pill">{{ e.nbPostes }} postes</span>
+                    <span class="stat-date">Depuis {{ e.dateDepuis }}</span>
+                </div>
+                <div class="card-actions">
+                    <button class="btn-voir-postes" (click)="ouvrirPostes(e)">
             <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
               <path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z" stroke="currentColor" stroke-width="1.3"/>
               <circle cx="8" cy="8" r="1.8" stroke="currentColor" stroke-width="1.3"/>
             </svg>
             Voir postes
           </button>
-          <button class="btn-archiver" (click)="confirmerArchivage(e); $event.stopPropagation()">
+                    <button class="btn-archiver" (click)="confirmerArchivage(e); $event.stopPropagation()">
             <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
               <path d="M2 4h12v1.5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.3"/>
               <path d="M3 6.5v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6" stroke="currentColor" stroke-width="1.3"/>
@@ -164,42 +165,42 @@
             </svg>
             Archiver
           </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Archivées (History) -->
-  <div class="section-block" *ngIf="activeTab === 'archivées'">
-    <div class="section-head">
-      <div>
-        <h2 class="section-title">Historique des sociétés archivées</h2>
-        <p class="section-sub">Sociétés retirées de la liste active</p>
-      </div>
-      <span class="badge-archived" *ngIf="nbArchivees > 0">{{ nbArchivees }} archivée{{ nbArchivees > 1 ? 's' : '' }}</span>
-    </div>
-
-    <div *ngIf="filteredArchivees.length === 0" class="empty-state">
-      Aucune Société archivée.
-    </div>
-
-    <div class="entreprises-grid">
-      <div class="entreprise-card archived" *ngFor="let e of filteredArchivees">
-        <div class="card-top">
-          <div class="avatar" [style.background]="e.couleur">{{ e.initiales }}</div>
-          <div class="entreprise-meta">
-            <div class="nom-row">
-              <span class="entreprise-nom">{{ e.nom }}</span>
-              <span class="archived-badge">Archivée</span>
+                </div>
             </div>
-            <span class="entreprise-secteur">{{ e.secteur }}</span>
-          </div>
         </div>
-        <div class="card-stats">
-          <span class="stat-pill">{{ e.nbPostes }} postes</span>
-          <span class="stat-date">Depuis {{ e.dateDepuis }}</span>
+    </div>
+
+    <!-- Archivées (History) -->
+    <div class="section-block" *ngIf="activeTab === 'archivées'">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Historique des sociétés archivées</h2>
+                <p class="section-sub">Sociétés retirées de la liste active</p>
+            </div>
+            <span class="badge-archived" *ngIf="nbArchivees > 0">{{ nbArchivees }} archivée{{ nbArchivees > 1 ? 's' : '' }}</span>
         </div>
-        <button class="btn-desarchiver" (click)="confirmerDesarchivage(e); $event.stopPropagation()">
+
+        <div *ngIf="filteredArchivees.length === 0" class="empty-state">
+            Aucune Société archivée.
+        </div>
+
+        <div class="entreprises-grid">
+            <div class="entreprise-card archived" *ngFor="let e of filteredArchivees">
+                <div class="card-top">
+                    <div class="avatar" [style.background]="e.couleur">{{ e.initiales }}</div>
+                    <div class="entreprise-meta">
+                        <div class="nom-row">
+                            <span class="entreprise-nom">{{ e.nom }}</span>
+                            <span class="archived-badge">Archivée</span>
+                        </div>
+                        <span class="entreprise-secteur">{{ e.secteur }}</span>
+                    </div>
+                </div>
+                <div class="card-stats">
+                    <span class="stat-pill">{{ e.nbPostes }} postes</span>
+                    <span class="stat-date">Depuis {{ e.dateDepuis }}</span>
+                </div>
+                <button class="btn-desarchiver" (click)="confirmerDesarchivage(e); $event.stopPropagation()">
           <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
             <path d="M2 4h12v1.5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.3"/>
             <path d="M3 6.5v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6" stroke="currentColor" stroke-width="1.3"/>
@@ -207,135 +208,135 @@
           </svg>
           Désarchiver
         </button>
-      </div>
+            </div>
+        </div>
     </div>
-  </div>
 
 </div>
 
 <!-- =================== MODAL POSTES =================== -->
 <div class="modal-overlay" *ngIf="showPostesModal" (click)="fermerModal()">
-  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
 
-    <!-- Modal Header -->
-    <div class="modal-header">
-      <div class="modal-title-group">
-        <div class="avatar-sm" [style.background]="selectedEntreprise?.couleur">
-          {{ selectedEntreprise?.initiales }}
-        </div>
-        <div>
-          <h3 class="modal-title">{{ selectedEntreprise?.nom }}</h3>
-          <p class="modal-subtitle">{{ selectedEntreprise?.secteur }} · {{ selectedEntreprise?.nbPostes }} postes · {{ getTotalEtudiants(selectedEntreprise!) }} étudiants au total</p>
-        </div>
-      </div>
-      <div class="modal-header-actions">
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <div class="modal-title-group">
+                <div class="avatar-sm" [style.background]="selectedEntreprise?.couleur">
+                    {{ selectedEntreprise?.initiales }}
+                </div>
+                <div>
+                    <h3 class="modal-title">{{ selectedEntreprise?.nom }}</h3>
+                    <p class="modal-subtitle">{{ selectedEntreprise?.secteur }} · {{ selectedEntreprise?.nbPostes }} postes · {{ getTotalEtudiants(selectedEntreprise!) }} étudiants au total</p>
+                </div>
+            </div>
+            <div class="modal-header-actions">
 
-        <button class="btn-close-modal" (click)="fermerModal()">
+                <button class="btn-close-modal" (click)="fermerModal()">
           <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
             <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
-      </div>
-    </div>
+            </div>
+        </div>
 
-    <!-- Postes list -->
-    <div class="postes-list">
-      <div *ngIf="isPostesLoading" class="empty-postes">
-        Chargement des postes...
-      </div>
-      <div *ngIf="!isPostesLoading && postesError" class="empty-postes">
-        {{ postesError }}
-      </div>
-      <div *ngIf="!isPostesLoading && !postesError && !selectedEntreprise?.postes?.length" class="empty-postes">
-        Aucun poste disponible pour cette société. 
-      </div>
-      <div class="poste-row" *ngFor="let p of selectedEntreprise?.postes">
-        <div class="poste-icon" [class.fermé]="p.statut === 'fermé'">
-          <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+        <!-- Postes list -->
+        <div class="postes-list">
+            <div *ngIf="isPostesLoading" class="empty-postes">
+                Chargement des postes...
+            </div>
+            <div *ngIf="!isPostesLoading && postesError" class="empty-postes">
+                {{ postesError }}
+            </div>
+            <div *ngIf="!isPostesLoading && !postesError && !selectedEntreprise?.postes?.length" class="empty-postes">
+                Aucun poste disponible pour cette société.
+            </div>
+            <div class="poste-row" *ngFor="let p of selectedEntreprise?.postes">
+                <div class="poste-icon" [class.fermé]="p.statut === 'fermé'">
+                    <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
             <rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
             <path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.3"/>
           </svg>
-        </div>
-        <div class="poste-info">
-          <span class="poste-titre">{{ p.titre }}</span>
-          <span class="poste-desc">{{ p.description }}</span>
-        </div>
-        <div class="poste-right">
-          <div class="poste-etudiants">
-            <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
+                </div>
+                <div class="poste-info">
+                    <span class="poste-titre">{{ p.titre }}</span>
+                    <span class="poste-desc">{{ p.description }}</span>
+                </div>
+                <div class="poste-right">
+                    <div class="poste-etudiants">
+                        <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
               <circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
               <path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
             </svg>
-            <span>{{ p.nbEtudiants }} étudiant{{ p.nbEtudiants !== 1 ? 's' : '' }}</span>
-          </div>
-          <span class="poste-statut" [class.ouvert]="p.statut === 'ouvert'" [class.ferme]="p.statut === 'fermé'">
+                        <span>{{ p.nbEtudiants }} étudiant{{ p.nbEtudiants !== 1 ? 's' : '' }}</span>
+                    </div>
+                    <span class="poste-statut" [class.ouvert]="p.statut === 'ouvert'" [class.ferme]="p.statut === 'fermé'">
             {{ p.statut === 'ouvert' ? 'Ouvert' : 'Fermé' }}
           </span>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-  </div>
+    </div>
 </div>
 
 <!-- =================== CONFIRM SUPPRESSION =================== -->
 <div class="modal-overlay" *ngIf="showConfirmSupp" (click)="annulerSupp()">
-  <div class="confirm-box" (click)="$event.stopPropagation()">
-    <div class="confirm-icon">
-      <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
+    <div class="confirm-box" (click)="$event.stopPropagation()">
+        <div class="confirm-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
         <path d="M12 9v4M12 17h.01" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#ef4444" stroke-width="1.8"/>
       </svg>
+        </div>
+        <h4 class="confirm-title">Supprimer l'accès ?</h4>
+        <p class="confirm-text">
+            La société <strong>{{ entrepriseToSupp?.nom }}</strong> sera retirée de la liste des sociétés validées et perdra son accès à la plateforme.
+        </p>
+        <div class="confirm-actions">
+            <button class="btn-cancel" (click)="annulerSupp()">Annuler</button>
+            <button class="btn-confirm-supp" (click)="supprimerAcces()">Oui, supprimer</button>
+        </div>
     </div>
-    <h4 class="confirm-title">Supprimer l'accès ?</h4>
-    <p class="confirm-text">
-      La société <strong>{{ entrepriseToSupp?.nom }}</strong> sera retirée de la liste des sociétés validées et perdra son accès à la plateforme.
-    </p>
-    <div class="confirm-actions">
-      <button class="btn-cancel" (click)="annulerSupp()">Annuler</button>
-      <button class="btn-confirm-supp" (click)="supprimerAcces()">Oui, supprimer</button>
-    </div>
-  </div>
 </div>
 
 <!-- =================== CONFIRM DÉSARCHIVAGE =================== -->
 <div class="modal-overlay" *ngIf="showConfirmDesarchive" (click)="annulerDesarchivage()">
-  <div class="confirm-box" (click)="$event.stopPropagation()">
-    <div class="confirm-icon desarchive-icon">
-      <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
+    <div class="confirm-box" (click)="$event.stopPropagation()">
+        <div class="confirm-icon desarchive-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
         <path d="M4 6h16v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6z" stroke="#10b981" stroke-width="1.8"/>
         <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" stroke="#10b981" stroke-width="1.8"/>
         <path d="M12 18v-5m0 0-2 2m2-2 2 2" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
+        </div>
+        <h4 class="confirm-title">Désarchiver cette société ?</h4>
+        <p class="confirm-text">
+            La société <strong>{{ entrepriseToDesarchive?.nom }}</strong> sera remise dans la liste des entreprises validées.
+        </p>
+        <div class="confirm-actions">
+            <button class="btn-cancel" (click)="annulerDesarchivage()">Annuler</button>
+            <button class="btn-confirm-desarchive" (click)="desarchiverEntreprise()">Oui, désarchiver</button>
+        </div>
     </div>
-    <h4 class="confirm-title">Désarchiver cette société ?</h4>
-    <p class="confirm-text">
-      La société <strong>{{ entrepriseToDesarchive?.nom }}</strong> sera remise dans la liste des entreprises validées.
-    </p>
-    <div class="confirm-actions">
-      <button class="btn-cancel" (click)="annulerDesarchivage()">Annuler</button>
-      <button class="btn-confirm-desarchive" (click)="desarchiverEntreprise()">Oui, désarchiver</button>
-    </div>
-  </div>
 </div>
 
 <!-- =================== CONFIRM ARCHIVAGE =================== -->
 <div class="modal-overlay" *ngIf="showConfirmArchive" (click)="annulerArchive()">
-  <div class="confirm-box" (click)="$event.stopPropagation()">
-    <div class="confirm-icon archive-icon">
-      <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
+    <div class="confirm-box" (click)="$event.stopPropagation()">
+        <div class="confirm-icon archive-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
         <path d="M4 6h16v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6z" stroke="#f97316" stroke-width="1.8"/>
         <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" stroke="#f97316" stroke-width="1.8"/>
         <path d="M10 13h4" stroke="#f97316" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
+        </div>
+        <h4 class="confirm-title">Archiver cette société ?</h4>
+        <p class="confirm-text">
+            La société <strong>{{ entrepriseToArchive?.nom }}</strong> sera déplacée vers l'historique et retirée de la liste des sociétés validées.
+        </p>
+        <div class="confirm-actions">
+            <button class="btn-cancel" (click)="annulerArchive()">Annuler</button>
+            <button class="btn-confirm-archive" (click)="archiverEntreprise()">Oui, archiver</button>
+        </div>
     </div>
-    <h4 class="confirm-title">Archiver cette société ?</h4>
-    <p class="confirm-text">
-      La société <strong>{{ entrepriseToArchive?.nom }}</strong> sera déplacée vers l'historique et retirée de la liste des sociétés validées.
-    </p>
-    <div class="confirm-actions">
-      <button class="btn-cancel" (click)="annulerArchive()">Annuler</button>
-      <button class="btn-confirm-archive" (click)="archiverEntreprise()">Oui, archiver</button>
-    </div>
-  </div>
 </div>

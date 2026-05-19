@@ -4,7 +4,9 @@
             <h1>Analyse des Gaps</h1>
             <p>{{ headerSubtitle }}</p>
         </div>
+    </header>
 
+    <div class="header-toolbar" aria-label="Filtres et actions">
         <div class="header-controls">
             <div class="cohort-pill">
                 <span class="live-dot"></span> {{ cohortLabel || 'Cohorte —' }}
@@ -13,14 +15,14 @@
             <label class="select-wrap">
                 <span class="sr-only">Changer de vue</span>
                 <select [value]="viewMode" (change)="setViewMode($any($event.target).value)">
-                    <option value="cohort">Vue cohorte</option>
+                    <option value="cohort">Vue d'ensemble</option>
                     <option value="student">Vue individuelle</option>
                 </select>
             </label>
 
             <button class="btn-export" type="button" (click)="loadDashboard()">Rafraîchir ↻</button>
         </div>
-    </header>
+    </div>
 
     <p *ngIf="loading" class="status-message">Chargement des données…</p>
     <p *ngIf="errorMessage && !loading" class="status-message error">{{ errorMessage }}</p>
@@ -163,7 +165,7 @@
                         <strong>{{ detail.gaps }}</strong>
                     </div>
                     <div class="hero-stat">
-                        <span class="hero-stat-label">Cible métier</span>
+                        <span class="hero-stat-label">Métier plus adéquat</span>
                         <strong>{{ detail.marketTarget }}</strong>
                     </div>
                 </div>
@@ -212,13 +214,13 @@
 
                     <div class="detail-columns">
                         <div>
-                            <h3>Atouts</h3>
+                            <h3>Points forts</h3>
                             <ul class="detail-list success-list">
                                 <li *ngFor="let item of detail.strengths">{{ item }}</li>
                             </ul>
                         </div>
                         <div>
-                            <h3>Fais attention</h3>
+                            <h3>Axe d'amélioration</h3>
                             <ul class="detail-list alert-list">
                                 <li *ngFor="let item of detail.watchouts">{{ item }}</li>
                             </ul>
@@ -238,7 +240,7 @@
                 <article class="panel student-focus-panel">
                     <div class="panel-head compact">
                         <div>
-                            <h2>Focus compétences</h2>
+                            <h2>Analyse des compétences</h2>
                             <p>Niveau acquis par rapport au niveau requis</p>
                         </div>
                     </div>

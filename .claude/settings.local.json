@@ -15,7 +15,13 @@
       "Bash(Select-Object -Last 10)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\" -Directory)",
       "Bash(Select-Object Name)",
-      "Bash(xargs grep -l \"stat-row\\\\|kpi-card\\\\|insertion\\\\|employabilit\")"
+      "Bash(xargs grep -l \"stat-row\\\\|kpi-card\\\\|insertion\\\\|employabilit\")",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npm install *)",
+      "Bash(node *)"
     ]
   }
 }

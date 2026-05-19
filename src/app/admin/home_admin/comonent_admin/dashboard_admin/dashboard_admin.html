@@ -22,12 +22,12 @@
             <h3 class="chart-title">Répartition des étudiants par<br />filière</h3>
             <div class="donut-container">
                 <svg viewBox="0 0 200 200" class="donut-svg" xmlns="http://www.w3.org/2000/svg">
-          <circle *ngFor="let seg of donutSegments" cx="100" cy="100" r="70" fill="none" [attr.stroke]="seg.color"
-            stroke-width="36" [attr.stroke-dasharray]="seg.dashArray" [attr.stroke-dashoffset]="seg.dashOffset"
-            transform="rotate(-90, 100, 100)" />
-          <!-- Center white circle for donut hole -->
-          <circle cx="100" cy="100" r="51" fill="white" />
-        </svg>
+                    <circle *ngFor="let seg of donutSegments" cx="100" cy="100" r="50" fill="none" [attr.stroke]="seg.color"
+                        stroke-width="36" [attr.stroke-dasharray]="seg.dashArray" [attr.stroke-dashoffset]="seg.dashOffset"
+                        transform="rotate(-90, 100, 100)" />
+                    <!-- Center white circle for donut hole -->
+                    <circle cx="100" cy="100" r="32" fill="white" />
+                </svg>
                 <div class="donut-legend">
                     <div class="legend-item" *ngFor="let l of donutLegend">
                         <span class="legend-dot" [style.background]="l.color"></span>
@@ -138,7 +138,8 @@
                         <span>{{ s.speciality }}</span>
                     </td>
                     <td class="col-score">{{ s.score }}/100</td>
-                    <td class="col-score">{{ i < 5 ? (s.employabilityScoreRaw ?? (s.employabilityScore + '/100')) : '' }}</td>
+                    <td class="col-score">{{ i
+                        < 5 ? (s.employabilityScoreRaw ?? (s.employabilityScore + '/100')) : '' }}</td>
                 </tr>
             </tbody>
         </table>

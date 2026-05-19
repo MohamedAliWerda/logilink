@@ -63,7 +63,7 @@ export class SidebarAdmin implements OnInit, OnDestroy {
     },
     {
       key: 'gaps',
-      label: 'Gaps',
+      label: 'Analyse des gaps',
       route: '/admin/gaps',
       exact: false,
     },
@@ -95,12 +95,6 @@ export class SidebarAdmin implements OnInit, OnDestroy {
       key: 'gestion-entreprise',
       label: 'Espace des sociétés',
       route: '/admin/gestion-entreprise',
-      exact: false,
-    },
-    {
-      key: 'settings',
-      label: 'Paramètres',
-      route: '/admin/settings',
       exact: false,
     },
     {

@@ -183,7 +183,7 @@ export class FicheSignaletique implements OnInit {
         throw new Error('Compte entreprise introuvable. Veuillez vous reconnecter.');
       }
 
-      const updated = await this.supabaseService.updateSocieteProfile(this.societeId, payload);
+      const updated = (await this.supabaseService.updateSocieteProfile(this.societeId, payload)) as any;
 
       this.profil = {
         nomEntreprise: String(updated?.denomination_sociale ?? payload.nomEntreprise),
@@ -195,7 +195,7 @@ export class FicheSignaletique implements OnInit {
 
       const entrepriseRaw = localStorage.getItem('entreprise');
       const entreprise = entrepriseRaw ? JSON.parse(entrepriseRaw) : {};
-      localStorage.setItem('entreprise', JSON.stringify({ ...entreprise, ...updated }));
+      localStorage.setItem('entreprise', JSON.stringify({ ...entreprise, ...(updated ?? {}) }));
 
       this.isEditing = false;
       this.successMessage = 'Profil mis à jour avec succès !';
