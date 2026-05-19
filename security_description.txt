@@ -435,5 +435,237 @@ All users (students, admins, companies) must pass a 2-step login flow:
   17  .env excluded from version control              Infra
 
 ================================================================================
+  WHAT WAS ADDED ON THE with_security BRANCH
+================================================================================
+
+  Branch   : with_security
+  Base     : retouche
+  Commits  :
+    2bf344e  chore: push all current work to with_security branch
+    05ba787  feat(security): expire session after 1 hour of cursor inactivity
+    20c5058  docs(security): add complete security description file (this file)
+
+  Everything below was NOT present on the retouche branch and was introduced
+  exclusively on with_security.
+
+--------------------------------------------------------------------------------
+  A. TWO-FACTOR AUTHENTICATION (email OTP)
+--------------------------------------------------------------------------------
+
+  New files:
+    backend/src/auth/two-factor.service.ts
+    backend/src/auth/dto/verify-2fa.dto.ts
+    backend/src/auth/dto/signin-entreprise.dto.ts
+
+  Modified files:
+    backend/src/auth/auth.controller.ts     (added /verify-2fa, /resend-2fa,
+                                             /signin-entreprise endpoints)
+    backend/src/auth/auth.service.ts        (signIn now returns challengeId
+                                             instead of a JWT)
+    backend/src/auth/auth.module.ts         (registers TwoFactorService,
+                                             JWT lifetime reduced to 4h)
+    src/app/auth/services/auth-api.service.ts
+    src/app/auth/login/login.ts
+    src/app/auth/verify/verify.ts
+    src/app/auth/verify/verify.html
+    src/app/entreprise/home/loginen/loginen.ts
+
+--------------------------------------------------------------------------------
+  B. JWT STRONG SECRET ENFORCEMENT + BOOT CHECK
+--------------------------------------------------------------------------------
+
+  Modified files:
+    backend/src/main.ts                     (assertStrongJwtSecret() refuses
+                                             to start if secret is weak/default)
+    backend/.env                            (secret replaced with 384-bit value)
+    backend/.env.example                    (template with placeholders)
+    .gitignore                              (backend/.env excluded from git)
+
+--------------------------------------------------------------------------------
+  C. IDLE SESSION EXPIRY — CURSOR INACTIVITY TIMEOUT (1 HOUR)
+--------------------------------------------------------------------------------
+
+  New files:
+    src/app/auth/services/idle-timeout.service.ts
+        Passive mousemove listener (runs outside Angular zone).
+        Resets a 60-minute countdown on every cursor movement.
+        On expiry: clears token/user/entreprise/role from localStorage
+        then navigates to /login.
+
+  Modified files:
+    src/app/app.ts
+        Root component now subscribes to NavigationEnd events.
+        Calls idle.start() on authenticated routes (token present
+        and URL is not a public page).
+        Calls idle.stop() on public pages (login, register, etc.).
+
+--------------------------------------------------------------------------------
+  D. ANGULAR ROUTE GUARDS
+--------------------------------------------------------------------------------
+
+  New files:
+    src/app/auth/guards/auth.guard.ts
+        authGuard  — decodes JWT, checks expiry, redirects to /login.
+        roleGuard  — extends authGuard, checks payload.role against
+                     allowed set (role read from JWT, NOT localStorage).
+
+  Modified files:
+    src/app/app.routes.ts
+        /home        -> canActivate: [authGuard, roleGuard('etudiant')]
+        /admin       -> canActivate: [authGuard, roleGuard('admin')]
+        /entreprise  -> canActivate: [authGuard, roleGuard('entreprise')]
+
+--------------------------------------------------------------------------------
+  E. ANGULAR HTTP INTERCEPTOR
+--------------------------------------------------------------------------------
+
+  New files:
+    src/app/auth/interceptors/auth.interceptor.ts
+        Attaches Authorization: Bearer <token> to every request
+        targeting environment.apiUrl. Leaves other hosts untouched.
+
+  Modified files:
+    src/app/app.config.ts
+        Registered via withInterceptors([authInterceptor]).
+
+--------------------------------------------------------------------------------
+  F. NESTJS JWT GUARD + ROLE GUARD ON CONTROLLERS
+--------------------------------------------------------------------------------
+
+  New files:
+    backend/src/auth/guards/roles.guard.ts
+    backend/src/auth/decorators/roles.decorator.ts
+
+  Modified files (guards applied):
+    backend/src/admin/ancien-etudiants.controller.ts   @Roles('admin')
+    backend/src/admin/dashboard.controller.ts          @Roles('admin')
+    backend/src/admin/gaps.controller.ts               @Roles('admin')
+    backend/src/offres/offres.controller.ts            per-handler roles
+    backend/src/auth/strategies/jwt.strategy.ts        role union extended
+                                                       to include 'entreprise'
+
+--------------------------------------------------------------------------------
+  G. NEW ENTREPRISE BACKEND MODULE (replaces direct Supabase calls)
+--------------------------------------------------------------------------------
+
+  New files:
+    backend/src/entreprise/entreprise.module.ts
+    backend/src/entreprise/entreprise.controller.ts
+        POST /entreprise/register          (public, throttled 5/min)
+        POST /entreprise/conflict          (public, throttled 30/min)
+        GET  /entreprise                   (admin)
+        GET  /entreprise/by-situations     (admin)
+        GET  /entreprise/:id               (admin or matching entreprise)
+        PUT  /entreprise/:id/situation     (admin)
+        PUT  /entreprise/:id/profile       (admin or matching entreprise)
+    backend/src/entreprise/entreprise.service.ts
+        bcrypt.hash on registration (12 rounds).
+        Server-side ownership check on profile updates.
+    backend/src/entreprise/dto/register-entreprise.dto.ts
+        @IsEmail, @MinLength(8) password, telephone regex validation.
+
+  Modified files:
+    backend/src/app.module.ts              (imports EntrepriseModule)
+    src/app/services/supabase.service.ts   (thin-wraps new endpoints
+                                            instead of direct DB calls)
+    src/app/entreprise/register/register-entreprise.ts
+    src/app/entreprise/register/register-entreprise.html
+
+--------------------------------------------------------------------------------
+  H. MAIL SERVICE + ANTI-PHISHING FIX
+--------------------------------------------------------------------------------
+
+  New files:
+    backend/src/admin/mail.service.ts
+        HTML-email sender via Gmail SMTP (nodemailer).
+        All recipient addresses resolved server-side by societeId —
+        the client can never inject an arbitrary `to` address.
+
+  Modified files:
+    backend/src/admin/ancien-etudiants.controller.ts
+        /send-approval-email, /send-rejection-email, /send-pending-email
+        now accept only { societeId } and look up the email in DB.
+        All three protected by @Roles('admin').
+
+  New files:
+    backend/src/admin/google-form.controller.ts
+        Google Form webhook kept public but isolated and throttled.
+
+--------------------------------------------------------------------------------
+  I. CORS HARDENING + HELMET + RATE LIMITING
+--------------------------------------------------------------------------------
+
+  Modified files:
+    backend/src/main.ts
+        CORS: dynamic origin callback against CORS_ORIGINS env list.
+        Helmet: X-Frame-Options, HSTS, X-Content-Type-Options, etc.
+        Rate limit: global ThrottlerGuard (60 req/min, 1000 req/hour).
+    backend/src/app.module.ts
+        ThrottlerModule registered globally.
+    backend/package.json
+        Added: @nestjs/throttler, helmet.
+
+--------------------------------------------------------------------------------
+  J. IDOR FIX ON /OFFRES ENDPOINTS
+--------------------------------------------------------------------------------
+
+  Modified files:
+    backend/src/offres/offres.controller.ts
+        assertEntrepriseOwnership() helper: admins bypass, entreprise
+        role must match JWT sub against societeId in URL/body.
+        Applied to: /create, /company/:id, /company/:id/candidatures,
+        /company/:id/candidatures/:sid/cv, PUT /:id, DELETE /:id,
+        /apply, /selection, /student/:id/applied.
+    backend/src/offres/offres.service.ts
+        getOffreOwningSocieteId(id) for PUT/DELETE ownership resolution.
+
+  New files:
+    backend/src/offres/offres-migration.service.ts
+    backend/src/offres/offres.scheduler.ts
+
+--------------------------------------------------------------------------------
+  K. SUPABASE SERVICE-ROLE KEY REMOVED FROM BROWSER BUNDLE
+--------------------------------------------------------------------------------
+
+  Modified files:
+    src/environments/environment.ts        (supabaseServiceRoleKey removed)
+    src/app/services/supabase.service.ts   (supabaseAdmin removed,
+                                            adminClient now returns anon
+                                            client + deprecated banner)
+
+--------------------------------------------------------------------------------
+  L. DASHBOARD STATS SERVICE (ADMIN)
+--------------------------------------------------------------------------------
+
+  New files:
+    backend/src/admin/dashboard-stats.service.ts
+        Centralises admin dashboard aggregation queries behind a
+        guarded NestJS service instead of direct frontend Supabase calls.
+
+  Modified files:
+    backend/src/admin/admin.module.ts
+    src/app/admin/home_admin/comonent_admin/dashboard_admin/dashboard_admin.ts
+
+--------------------------------------------------------------------------------
+  M. MISC SECURITY CLEANUP
+--------------------------------------------------------------------------------
+
+  - Removed console.log calls that printed plaintext company passwords:
+      src/app/entreprise/register/register-entreprise.ts
+      src/app/services/supabase.service.ts
+
+  - Replaced 4 hard-coded http://localhost:3001 strings with
+    environment.apiUrl:
+      src/app/auth/services/auth-api.service.ts
+      src/app/entreprise/services/entreprise-api.service.ts
+      src/app/admin/.../referentiel-api.service.ts
+      src/app/user/home/component/profil/profil.ts
+
+  - JWT role union extended to 'admin' | 'etudiant' | 'entreprise' in
+    backend/src/auth/strategies/jwt.strategy.ts
+
+  - backend/.env added to .gitignore; backend/.env.example created.
+
+================================================================================
 END
 ================================================================================
