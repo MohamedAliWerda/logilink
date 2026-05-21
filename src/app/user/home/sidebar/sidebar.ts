@@ -71,7 +71,7 @@ export class Sidebar implements OnInit, OnDestroy {
     },
     {
       key: 'matching',
-      label: 'Matching / Gap',
+      label: 'Matching / Gaps',
       route: '/home/matching',
       exact: false,
       icon: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"

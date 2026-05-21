@@ -23,7 +23,7 @@
         </svg> GESTION DES OFFRES
             </div>
             <h1>Offres d'emploi par société</h1>
-            <p class="page-subtitle">Créez et suivez vos publications en un coup d'œil.</p>
+            <p class="page-subtitle">Publiez vos offres d’emploi et suivez-les facilement.</p>
         </div>
     </div>
 
@@ -132,11 +132,7 @@
 
             <div class="offre-actions">
 
-                <button
-          *ngIf="isFeedbackAvailable(offre)"
-          class="btn-feedback"
-          (click)="openFeedback(offre)"
-        >
+                <button *ngIf="isFeedbackAvailable(offre)" class="btn-feedback" (click)="openFeedback(offre)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>

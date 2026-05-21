@@ -12,17 +12,14 @@
             <div class="stat-card">
                 <div class="stat-label">Réponses reçues</div>
                 <div class="stat-val">{{ feedbackCount }}</div>
-                <div class="stat-sub">feedbacks dans la base</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Taux d'insertion</div>
+                <div class="stat-label">Taux de réponse des recrutés</div>
                 <div class="stat-val">{{ insertionRate }}%</div>
-                <div class="stat-sub">diplômés en emploi</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">En attente de réponse</div>
-                <div class="stat-val">{{ waitingResponseCount }}</div>
-                <div class="stat-sub">anciens non répondus</div>
+                <div class="stat-label">Non contactés</div>
+                <div class="stat-val">{{ uncontactedCount }}</div>
             </div>
         </div>
         } @else {
@@ -68,12 +65,12 @@
                         <circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.4"></circle>
                         <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
                     </svg>
-                    <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un ancien diplômé..." />
+                    <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un recruté..." />
                 </div>
 
                 <div class="toolbar-right">
                     <button class="btn btn-ghost" type="button" (click)="openAddStudentModal()">Ajouter</button>
-                    <button class="btn btn-orange" type="button" (click)="openSendEmailModal()">Diffusion email</button>
+                    <button class="btn btn-orange" type="button" (click)="openSendEmailModal()">Envoyer email</button>
                 </div>
             </div>
 
@@ -135,7 +132,7 @@
                 <div class="kpi-card" style="--accent:#1D9E75">
                     <div class="kpi-k">TI_promotion</div>
                     <div class="kpi-v">{{ insertionRate }}%</div>
-                    <div class="kpi-s">taux d'insertion</div>
+                    <div class="kpi-s">Taux de réponse des recrutés</div>
                 </div>
                 <div class="kpi-card" style="--accent:#7F77DD">
                     <div class="kpi-k">DI_moyen</div>
@@ -174,7 +171,7 @@
 
             <div class="charts-3">
                 <div class="chart-card">
-                    <div class="chart-head">Date d’obtention du poste après le diplôme</div>
+                    <div class="chart-head">Date d'obtention du poste après le diplôme</div>
                     <div class="chart-sub">Distribution des délais</div>
                     <div class="chart-body">
                         <canvas id="delay-chart"></canvas>
@@ -489,7 +486,7 @@
     <div class="modal-overlay" (click)="closeAddStudentModal()">
         <div class="email-modal-card" (click)="$event.stopPropagation()">
             <header class="modal-header">
-                <h3 class="modal-title">Ajouter un ancien diplômé</h3>
+                <h3 class="modal-title">Ajouter un diplômé recruté</h3>
                 <button class="close-btn" (click)="closeAddStudentModal()">Fermer</button>
             </header>
 
@@ -555,7 +552,23 @@
     </div>
     } @if (showSuccessNotification) {
     <div class="toast show success" [@fadeInOut]>
-        {{ successMessage }}
+        <span>✓ {{ successMessage }}</span>
+    </div>
+    } @if (showErrorNotification) {
+    <div class="toast show error" [@fadeInOut]>
+        <span>✕ {{ errorNotifMessage }}</span>
+        <button class="toast-close" (click)="closeErrorNotif()">×</button>
+    </div>
+    } @if (showConfirmModal) {
+    <div class="modal-overlay" (click)="onConfirmNo()">
+        <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+            <div class="confirm-modal-icon">⚠</div>
+            <p class="confirm-modal-message">{{ confirmModalMessage }}</p>
+            <div class="confirm-modal-actions">
+                <button class="btn btn-ghost" (click)="onConfirmNo()">Annuler</button>
+                <button class="btn btn-danger" (click)="onConfirmYes()">Confirmer</button>
+            </div>
+        </div>
     </div>
     }
 </section>

@@ -213,22 +213,20 @@ export class OffresService {
   } {
     const message = response?.message;
 
-    if (response && response.success === true && response.data && typeof response.data === 'object') {
-      if ('success' in response.data) {
-        const nested = response.data;
-        return {
-          success: nested.success !== false,
-          data: nested.data,
-          message,
-          error: nested.error,
-        };
+    if (response && response.success === true) {
+      if (response.data && typeof response.data === 'object') {
+        if ('success' in response.data) {
+          const nested = response.data;
+          return {
+            success: nested.success !== false,
+            data: nested.data,
+            message,
+            error: nested.error,
+          };
+        }
+        return { success: true, data: response.data, message };
       }
-
-      return {
-        success: true,
-        data: response.data,
-        message,
-      };
+      return { success: true, data: response.data ?? null, message };
     }
 
     if (response && response.success === false) {

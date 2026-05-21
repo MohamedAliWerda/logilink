@@ -26,7 +26,7 @@
         <!-- Score d'Employabilité (full summary card) -->
         <div class="panel score-card employ-panel" style="grid-column: 1 / -1;">
             <div class="score-header panel-header">
-                <h2>Score Employabilité</h2>
+                <h2>Score d'employabilité</h2>
             </div>
 
             <div class="score-body employ-body-horizontal">
@@ -49,19 +49,19 @@
         <!-- Target metier summary -->
         <div class="panel graph-card">
             <div class="panel-header">
-                <h2>Metier vise</h2>
+                <h2>Métier visé</h2>
                 <button class="panel-link" type="button" (click)="goToMatching()">Voir tout →</button>
             </div>
             <div class="target-metier">
                 <div>
                     <div class="target-metier-label">{{ targetMetierLabel || 'Non renseigne' }}</div>
-                    <div class="target-metier-sub">Metier vise du profil</div>
+                    <div class="target-metier-sub">Métier visé du profil</div>
+                    <div class="target-metier-gaps">{{ targetMetierGapsCount }} gaps pour ce métier</div>
                 </div>
                 <div class="target-metier-score" *ngIf="targetMetierCoveragePct !== null">{{ targetMetierCoveragePct }}%</div>
             </div>
             <div class="target-metier-meta">
-                <span>{{ compatibleMetiersCount }} metiers compatibles</span>
-                <span>{{ targetMetierGapsCount }} gaps pour ce metier</span>
+                <span>{{ compatibleMetiersCount }} métier(s) compatible(s)</span>
             </div>
         </div>
 
@@ -71,7 +71,7 @@
             <!-- Matching Général (split into three panels) -->
             <div class="panel">
                 <div class="panel-header">
-                    <h2>Métiers compatibles</h2>
+                    <h2>Métier(s) compatible(s)</h2>
                     <button class="panel-link" type="button" (click)="goToMatching()">Voir tout →</button>
                 </div>
                 <ul class="mini-list">

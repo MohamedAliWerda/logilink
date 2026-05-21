@@ -60,6 +60,18 @@ export class SupabaseService {
     return this.unwrap(response);
   }
 
+  async deleteAncienEtudiant(id: string | number, email?: string): Promise<void> {
+    let apiUrl = `${environment.apiUrl}/admin/ancien-etudiants/${encodeURIComponent(id)}`;
+    if (email) apiUrl += `?email=${encodeURIComponent(email)}`;
+    await firstValueFrom(this.http.delete<any>(apiUrl));
+  }
+
+  async sendSingleAncienEtudiantInvitation(id: string, payload?: { subject?: string; message?: string }): Promise<{ sent: boolean }> {
+    const apiUrl = `${environment.apiUrl}/admin/ancien-etudiants/${id}/send-invitation`;
+    const response = await firstValueFrom(this.http.post<any>(apiUrl, payload ?? {}));
+    return this.unwrap(response);
+  }
+
   async sendAncienEtudiantInvitations(payload: { subject: string; message: string }): Promise<{ attempted: number; sent: number; failed: number; errors: { email: string; reason: string }[] }> {
     const apiUrl = `${environment.apiUrl}/admin/ancien-etudiants/send-invitations`;
     const response = await firstValueFrom(this.http.post<any>(apiUrl, payload));

@@ -170,6 +170,13 @@
     margin-top: 0.2rem;
 }
 
+.target-metier-gaps {
+    font-size: 0.8rem;
+    color: #f08f24;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
 .target-metier-score {
     min-width: 64px;
     text-align: center;

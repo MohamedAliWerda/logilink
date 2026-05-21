@@ -1,127 +1,113 @@
 <div class="container">
 
-  <div class="hero-header">
-    <h1>
-      Offres d'emploi 
-    </h1>
-    <p class="subtitle">
-      Postulez à plusieurs offres en un clic
-    </p>
-  </div>
+    <div class="hero-header">
+        <h1>
+            Offres d'emploi
+        </h1>
+        <p class="subtitle">
+            Découvrez et postulez à des offres d’emploi.
+        </p>
+    </div>
 
-  <!-- Search -->
-  <div class="search-bar">
-    <input
-      type="text"
-      placeholder="Rechercher une entreprise, un secteur ou un poste..."
-      [(ngModel)]="searchQuery"
-    />
-  </div>
+    <!-- Search -->
+    <div class="search-bar">
+        <input type="text" placeholder="Rechercher une société, un secteur ou un poste..." [(ngModel)]="searchQuery" />
+    </div>
 
-  <div class="loading-state" *ngIf="isLoading">Chargement des offres...</div>
-  <div class="error-state" *ngIf="!isLoading && errorMessage">{{ errorMessage }}</div>
-  <div
-    class="submit-state"
-    *ngIf="submitMessage"
-    [ngClass]="submitMessageType === 'success' ? 'submit-success' : 'submit-error'"
-  >
-    <span>{{ submitMessage }}</span>
-    <button type="button" class="submit-close" (click)="closeSubmitMessage()">✕</button>
-  </div>
+    <div class="loading-state" *ngIf="isLoading">Chargement des offres...</div>
+    <div class="error-state" *ngIf="!isLoading && errorMessage">{{ errorMessage }}</div>
+    <div class="submit-state" *ngIf="submitMessage" [ngClass]="submitMessageType === 'success' ? 'submit-success' : 'submit-error'">
+        <span>{{ submitMessage }}</span>
+        <button type="button" class="submit-close" (click)="closeSubmitMessage()">✕</button>
+    </div>
 
-  <!-- Cards -->
-  <div class="cards" *ngIf="!isLoading && groupedJobs.length > 0">
-    <div class="card" *ngFor="let group of groupedJobs">
-      <div class="card-header">
-        <div class="avatar blue">{{ getCompanyInitials(group.company) }}</div>
-        <div>
-          <h3>{{ group.company }} ✔</h3>
-          <p>{{ group.location }}</p>
-        </div>
-        <span class="count">{{ group.jobs.length }}</span>
-      </div>
+    <!-- Cards -->
+    <div class="cards" *ngIf="!isLoading && groupedJobs.length > 0">
+        <div class="card" *ngFor="let group of groupedJobs">
+            <div class="card-header">
+                <div class="avatar blue">{{ getCompanyInitials(group.company) }}</div>
+                <div>
+                    <h3>{{ group.company }} ✔</h3>
+                    <p>{{ group.location }}</p>
+                </div>
+                <span class="count">{{ group.jobs.length }}</span>
+            </div>
 
-      <div
-        class="job"
-        *ngFor="let job of group.jobs"
-        [class.selected]="job.selected"
-        [class.applied]="appliedJobIds.has(job.id)"
-        (click)="toggleJob(job)"
-      >
-        <div class="radio" *ngIf="!appliedJobIds.has(job.id)"></div>
-        <span>{{ job.title }}</span>
-        <span class="tag">{{ job.type }}</span>
-        <div class="card-actions">
-          <span *ngIf="appliedJobIds.has(job.id)" class="applied-badge">✓ Postulé</span>
-          <button class="details-btn" (click)="$event.stopPropagation(); openDetails(job)">
+            <div class="job" *ngFor="let job of group.jobs" [class.selected]="job.selected" [class.applied]="appliedJobIds.has(job.id)" (click)="toggleJob(job)">
+                <div class="radio" *ngIf="!appliedJobIds.has(job.id)"></div>
+                <span>{{ job.title }}</span>
+                <span class="tag">{{ job.type }}</span>
+                <div class="card-actions">
+                    <span *ngIf="appliedJobIds.has(job.id)" class="applied-badge">✓ Postulé</span>
+                    <button class="details-btn" (click)="$event.stopPropagation(); openDetails(job)">
             Détails
           </button>
-          <button *ngIf="job.selected && !appliedJobIds.has(job.id)" class="eliminer-btn" (click)="$event.stopPropagation(); removeJob(job, $event)">
+                    <button *ngIf="job.selected && !appliedJobIds.has(job.id)" class="eliminer-btn" (click)="$event.stopPropagation(); removeJob(job, $event)">
             Éliminer
           </button>
-          <button *ngIf="appliedJobIds.has(job.id)" class="eliminer-btn unsubmit-btn" (click)="$event.stopPropagation(); unsubmit(job, $event)">
+                    <button *ngIf="appliedJobIds.has(job.id)" class="eliminer-btn unsubmit-btn" (click)="$event.stopPropagation(); unsubmit(job, $event)">
             Éliminer
           </button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <div class="empty-state" *ngIf="!isLoading && groupedJobs.length === 0 && !errorMessage">
-    Aucune offre d'emploi disponible pour le moment.
-  </div>
-
-  <!-- Bottom Bar -->
-  <div class="bottom-bar" *ngIf="selectedJobs.length > 0">
-    <div>
-      <strong>{{ selectedJobs.length }} poste(s) sélectionné(s)</strong>
-      <p>Vous pouvez encore ajouter d'autres offres avant d'envoyer.</p>
+    <div class="empty-state" *ngIf="!isLoading && groupedJobs.length === 0 && !errorMessage">
+        Aucune offre d'emploi disponible pour le moment.
     </div>
-    <button (click)="postuler()" [disabled]="isPostuling">
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar" *ngIf="selectedJobs.length > 0">
+        <div>
+            <strong>{{ selectedJobs.length }} poste(s) sélectionné(s)</strong>
+            <p>Vous pouvez encore ajouter d'autres offres avant d'envoyer.</p>
+        </div>
+        <button (click)="postuler()" [disabled]="isPostuling">
       {{ isPostuling ? 'Envoi en cours...' : 'Postuler maintenant' }}
     </button>
-  </div>
+    </div>
 </div>
 
 <!-- ✅ AJOUT : Modale détails du poste -->
 <div class="modal-overlay" *ngIf="selectedJob" (click)="closeDetails()">
-  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal" (click)="$event.stopPropagation()">
 
-    <div class="modal-header">
-      <h2>{{ selectedJob.title }}</h2>
-      <button class="modal-close" (click)="closeDetails()">✕</button>
-    </div>
+        <div class="modal-header">
+            <h2>{{ selectedJob.title }}</h2>
+            <button class="modal-close" (click)="closeDetails()">✕</button>
+        </div>
 
-    <div class="modal-body">
+        <div class="modal-body">
 
-  <div class="modal-row">
-    <div class="modal-field">
-      <label>Titre de poste</label>
-      <p>{{ selectedJob.title }}</p>
-    </div>
-  </div>
+            <div class="modal-row">
+                <div class="modal-field">
+                    <label>Titre de poste</label>
+                    <p>{{ selectedJob.title }}</p>
+                </div>
+            </div>
 
-  <div class="modal-row">
-    <div class="modal-field">
-      <label>Sociéte</label>
-      <p>{{ selectedJob.company }}</p>
-    </div>
-  </div>
+            <div class="modal-row">
+                <div class="modal-field">
+                    <label>Sociéte</label>
+                    <p>{{ selectedJob.company }}</p>
+                </div>
+            </div>
 
-  <div class="modal-row">
-    <div class="modal-field">
-      <label>Exigences</label>
-      <p class="description-text">{{ selectedJob.description }}</p>
-    </div>
-  </div>
+            <div class="modal-row">
+                <div class="modal-field">
+                    <label>Exigences</label>
+                    <p class="description-text">{{ selectedJob.description }}</p>
+                </div>
+            </div>
 
-</div>
+        </div>
 
-    <div class="modal-footer">
-  <button class="btn-select" (click)="toggleJob(selectedJob); closeDetails()">
+        <div class="modal-footer">
+            <button class="btn-select" (click)="toggleJob(selectedJob); closeDetails()">
     {{ selectedJob.selected ? 'Éliminer' : "Enregistrer l'offre" }}
   </button>
-</div>
+        </div>
 
-  </div>
+    </div>
 </div>

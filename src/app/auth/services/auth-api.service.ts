@@ -87,4 +87,22 @@ export class AuthApiService {
       ),
     );
   }
+
+  forgotPasswordEntreprise(email: string): Promise<{ message: string }> {
+    return firstValueFrom(
+      this.http.post<{ message: string }>(`${this.apiBaseUrl}/auth/forgot-password-entreprise`, { email }),
+    );
+  }
+
+  verifyResetCodeEntreprise(email: string, code: string): Promise<{ message: string }> {
+    return firstValueFrom(
+      this.http.post<{ message: string }>(`${this.apiBaseUrl}/auth/verify-reset-code-entreprise`, { email, code }),
+    );
+  }
+
+  resetPasswordEntreprise(email: string, code: string, password: string): Promise<{ message: string }> {
+    return firstValueFrom(
+      this.http.post<{ message: string }>(`${this.apiBaseUrl}/auth/reset-password-entreprise`, { email, code, password }),
+    );
+  }
 }

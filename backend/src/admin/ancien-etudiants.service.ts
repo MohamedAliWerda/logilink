@@ -86,6 +86,49 @@ export class AncienEtudiantsService {
     return data;
   }
 
+  async deleteAncienEtudiant(id: string | number, explicitEmail?: string) {
+    if (!this.supabase) {
+      throw new Error('Supabase client is not configured');
+    }
+
+    // 1. Try numeric id
+    const numericId = Number(id);
+    if (Number.isFinite(numericId) && numericId > 0) {
+      const { error } = await this.supabase
+        .from('ancien_etudiant')
+        .delete()
+        .eq('id', numericId);
+
+      if (error) {
+        this.logger.error('Supabase delete error: ' + error.message);
+        throw new Error(error.message);
+      }
+      return;
+    }
+
+    // 2. Use explicit email passed from the frontend
+    const emailToUse =
+      explicitEmail?.trim() ||
+      // 3. Extract email from fallback id string (e.g. "jean-pierre@gmail.com-2023")
+      (String(id).match(/([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/)?.[1] ?? '');
+
+    if (emailToUse) {
+      const { error } = await this.supabase
+        .from('ancien_etudiant')
+        .delete()
+        .ilike('EMAIL', emailToUse);
+
+      if (error) {
+        this.logger.error('Supabase delete by email error: ' + error.message);
+        throw new Error(error.message);
+      }
+      return;
+    }
+
+    // 4. Nothing matched — nothing to delete, treat as success
+    this.logger.warn('deleteAncienEtudiant: no identifier resolved for id=' + String(id));
+  }
+
   async createFeedback(payload: Record<string, unknown>) {
     if (!this.supabase) {
       throw new Error('Supabase client is not configured');
@@ -122,10 +165,6 @@ export class AncienEtudiantsService {
     if (error) {
       this.logger.error('Supabase feedback insert error: ' + error.message);
       throw new Error(error.message);
-    }
-
-    if (row.email) {
-      await this.markResponseReceived(row.email);
     }
 
     return data;
@@ -222,7 +261,7 @@ export class AncienEtudiantsService {
         .from('ancien_etudiant')
         .update({
           'RÉPONSE': 'A répondu',
-          'STATUT INVITATION': 'Invité',
+          'STATUT INVITATION': 'Touché',
           ACTIONS: 'Voir feedback',
         })
         .ilike('EMAIL', normalized);
@@ -234,6 +273,56 @@ export class AncienEtudiantsService {
       const msg = e instanceof Error ? e.message : String(e);
       this.logger.warn('markResponseReceived failed: ' + msg);
     }
+  }
+
+  async sendSingleInvitation(id: string | number, subject: string, message: string): Promise<{ sent: boolean }> {
+    if (!this.supabase) throw new Error('Supabase client is not configured');
+
+    let row: Record<string, any> | null = null;
+
+    const numericId = Number(id);
+    if (Number.isFinite(numericId) && numericId > 0) {
+      const { data, error } = await this.supabase
+        .from('ancien_etudiant')
+        .select('*')
+        .eq('id', numericId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      row = data ?? null;
+    }
+
+    // Fallback: id may be an email-based string (e.g. "jean-pierre@gmail.com-2023")
+    if (!row) {
+      const emailMatch = String(id).match(/([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/);
+      const emailPart = emailMatch?.[1] ?? '';
+      if (emailPart) {
+        const { data, error } = await this.supabase
+          .from('ancien_etudiant')
+          .select('*')
+          .ilike('EMAIL', emailPart)
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        row = data ?? null;
+      }
+    }
+
+    if (!row) throw new Error('Ancien étudiant introuvable');
+
+    const email = String(row.EMAIL ?? row.email ?? '').trim();
+    if (!email) throw new Error('Email manquant pour cet ancien diplômé');
+
+    const namePart = `${row.prenom ?? row.PRENOM ?? ''} ${row.nom ?? row.NOM ?? ''}`.trim();
+    const fullName = (row.NOM ?? namePart ?? email).toString();
+
+    await this.mailService.sendInvitation(email, fullName, subject, message);
+
+    // Update by whichever key we have
+    const updateQuery = Number.isFinite(numericId) && numericId > 0
+      ? this.supabase.from('ancien_etudiant').update({ 'STATUT INVITATION': 'Touché', ACTIONS: 'Relancer' }).eq('id', numericId)
+      : this.supabase.from('ancien_etudiant').update({ 'STATUT INVITATION': 'Touché', ACTIONS: 'Relancer' }).ilike('EMAIL', email);
+    await updateQuery;
+
+    return { sent: true };
   }
 
   async sendInvitationsToUncontacted(subject: string, message: string): Promise<SendInvitationsResult> {
@@ -276,7 +365,7 @@ export class AncienEtudiantsService {
 
         const { error: updateError } = await this.supabase
           .from('ancien_etudiant')
-          .update({ 'STATUT INVITATION': 'Invité', ACTIONS: 'Relancer' })
+          .update({ 'STATUT INVITATION': 'Touché', ACTIONS: 'Relancer' })
           .eq('EMAIL', email);
 
         if (updateError) {

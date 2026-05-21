@@ -21,7 +21,11 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(npm install *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(xargs grep -l \"ancien\\\\|progres\\\\|professionnel\\\\|AncienEtudiant\\\\|ancien_etudiant\")",
+      "Bash(python3 *)",
+      "Bash(curl *)",
+      "Bash(del *)"
     ]
   }
 }

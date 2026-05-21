@@ -461,7 +461,7 @@ export class GapsService {
       {
         label: 'Gaps critiques',
         value: String(gapRows.length),
-        note: absentCount ? `dont ${absentCount} compétences absentes` : 'compétences manquantes',
+        note: absentCount ? `dont ${absentCount} compétences manquantes` : 'compétences manquantes',
         tone: 'red',
       },
       {

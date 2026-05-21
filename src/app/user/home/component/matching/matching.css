@@ -97,6 +97,71 @@
     font-size: 1.5rem;
 }
 
+.summary-denom {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #8a9ab5;
+}
+
+.summary-sub {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.76rem;
+    color: #7a879d;
+}
+
+/* KPI bar */
+.kpi-bar-track {
+    margin-top: 0.6rem;
+    height: 5px;
+    background: #edf0f5;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.kpi-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+.kpi-bar-match { background: #1d9e75; }
+.kpi-bar-gap   { background: #f5a623; }
+
+/* Card accent borders */
+.summary-card.kpi-match { border-color: #b8ead8; }
+.summary-card.kpi-gap   { border-color: #fde6b5; }
+
+/* Gap criticality pills */
+.kpi-gap-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 0.45rem;
+}
+
+.gap-pill {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+}
+
+.gap-pill.critical {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.gap-pill.medium {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.gap-pill.low {
+    background: #dcfce7;
+    color: #166534;
+}
+
 .section-title {
     margin: 1rem 0 0.6rem;
     color: #2a3b57;

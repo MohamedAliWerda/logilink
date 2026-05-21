@@ -50,22 +50,56 @@ export class Verify {
   }
 
   onInput(event: Event, index: number): void {
+    // Mobile-only path (key='Unidentified' in onKeydown, so no preventDefault there).
     const input = event.target as HTMLInputElement;
     const val = input.value.replace(/\D/g, '').slice(-1);
-    this.digits[index] = val;
+    if (!val) return;
     input.value = val;
+    this.digits[index] = val;
     this.errorMsg = '';
-
-    if (val && index < 5) {
-      const next = document.querySelectorAll<HTMLInputElement>('.digit-input')[index + 1];
-      next?.focus();
+    // Defer focus so keypress/input events for THIS key finish on this element first.
+    if (index < 5) {
+      setTimeout(() => {
+        document.querySelectorAll<HTMLInputElement>('.digit-input')[index + 1]?.focus();
+      }, 0);
     }
   }
 
   onKeydown(event: KeyboardEvent, index: number): void {
-    if (event.key === 'Backspace' && !this.digits[index] && index > 0) {
-      const prev = document.querySelectorAll<HTMLInputElement>('.digit-input')[index - 1];
-      prev?.focus();
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      if (this.digits[index]) {
+        this.digits[index] = '';
+      } else if (index > 0) {
+        this.digits[index - 1] = '';
+        const prev = document.querySelectorAll<HTMLInputElement>('.digit-input')[index - 1];
+        if (prev) { prev.value = ''; prev.focus(); }
+      }
+      return;
+    }
+
+    // Allow control/navigation keys (Tab, arrows, Delete, etc.)
+    if (event.key.length > 1) return;
+
+    // Mobile sends 'Unidentified' — let the input event handle it
+    if (event.key === 'Unidentified') return;
+
+    // Let browser shortcuts (Ctrl+V, Cmd+V, Ctrl+C, …) pass through untouched.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    // Desktop: intercept the digit, prevent browser insertion.
+    event.preventDefault();
+
+    if (/^\d$/.test(event.key)) {
+      this.digits[index] = event.key;
+      this.errorMsg = '';
+      // Defer focus so all events for this keypress finish on this element first,
+      // preventing keypress/input from firing on the next input and double-advancing.
+      if (index < 5) {
+        setTimeout(() => {
+          document.querySelectorAll<HTMLInputElement>('.digit-input')[index + 1]?.focus();
+        }, 0);
+      }
     }
   }
 

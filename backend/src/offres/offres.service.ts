@@ -106,6 +106,7 @@ export class OffresService {
       const { data: offres, error } = await this.supabase
         .from('post')
         .select('*')
+        .eq('is_archived', false)
         .order('id_line', { ascending: false });
 
       if (error) {
@@ -154,6 +155,7 @@ export class OffresService {
         .from('post')
         .select('*')
         .eq('id', parsedSocieteId)
+        .eq('is_archived', false)
         .order('id_line', { ascending: false });
 
       if (error) {
@@ -266,17 +268,14 @@ export class OffresService {
 
       const { error } = await this.supabase
         .from('post')
-        .delete()
+        .update({ is_archived: true })
         .eq('id_line', idLine);
 
       if (error) {
         throw new Error(`Supabase error: ${error.message}`);
       }
 
-      return {
-        success: true,
-        message: 'Offre supprimée avec succès',
-      };
+      return { success: true, message: 'Offre supprimée avec succès' };
     } catch (error) {
       return {
         success: false,
@@ -366,9 +365,13 @@ export class OffresService {
         message: 'Candidature(s) enregistrée(s) avec succès',
       };
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : 'Erreur lors de la candidature';
+      if (errMsg.toLowerCase().includes('duplicate') || errMsg.toLowerCase().includes('unique constraint') || errMsg.toLowerCase().includes('unique violation')) {
+        return { success: true, data: { inserted: 0, skipped: 1 }, message: 'Déjà enregistré' };
+      }
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erreur lors de la candidature',
+        error: errMsg,
         data: null,
       };
     }
@@ -847,6 +850,11 @@ export class OffresService {
         if (tableMissing) {
           lastError = new Error(`Supabase error: ${error.message}`);
           break;
+        }
+
+        const isDuplicate = msg.includes('duplicate') || msg.includes('unique constraint') || msg.includes('unique violation');
+        if (isDuplicate) {
+          return;
         }
 
         const missingColumn = this.extractMissingColumn(error.message);

@@ -59,7 +59,7 @@ export class ScoreAdmin implements OnInit, OnDestroy {
   barWidth = 0;
 
   stats = [
-    { value: '...', label: "Nombre d’étudiants inscrits sur la plateforme" },
+    { value: '...', label: "Nombre d'étudiants inscrits sur la plateforme" },
     { value: '...', label: "Meilleurs profils (≥ 75%)" },
   ];
 

@@ -3,8 +3,6 @@
     <div class="deco deco-ring deco-ring-1"></div>
     <div class="deco deco-ring deco-ring-2"></div>
     <div class="deco deco-ring deco-ring-3"></div>
-
-    <!-- Mini bar chart -->
     <div class="deco viz-bar-chart">
       <div class="viz-bar" style="height:30px"></div>
       <div class="viz-bar" style="height:50px"></div>
@@ -12,8 +10,6 @@
       <div class="viz-bar" style="height:60px"></div>
       <div class="viz-bar" style="height:44px"></div>
     </div>
-
-    <!-- Mini pie / donut -->
     <div class="deco viz-donut">
       <svg viewBox="0 0 36 36" width="70" height="70">
         <circle cx="18" cy="18" r="13" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="5"/>
@@ -23,8 +19,6 @@
           stroke-dasharray="25 82" stroke-dashoffset="-65" stroke-linecap="round"/>
       </svg>
     </div>
-
-    <!-- Mini stat card top-right -->
     <div class="deco viz-stat-card viz-card-1">
       <div class="viz-card-line viz-card-line-long"></div>
       <div class="viz-card-line viz-card-line-short"></div>
@@ -34,31 +28,51 @@
         <div class="viz-mini-bar" style="width:40%"></div>
       </div>
     </div>
-
-    <!-- Mini stat card bottom-right -->
     <div class="deco viz-stat-card viz-card-2">
       <div class="viz-card-line viz-card-line-long"></div>
       <div class="viz-card-line viz-card-line-short"></div>
     </div>
-
     <div class="left-content">
       <img src="logo.png" alt="LOGILINK ISGIS & DJAGORA" class="main-logo" />
     </div>
-
   </div>
+
   <div class="login-right">
     <div class="login-box">
+      <a class="access-back" routerLink="/entreprise/forgot-password">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+        Retour
+      </a>
       <div class="login-header">
         <img src="isgi-sfax-logo-.png" alt="ISGI Sfax" class="logo-left">
         <img src="djagora-removebg-preview.png" alt="Djagora" class="logo-right">
       </div>
       <h2>Vérification du code</h2>
-      <p class="subtitle">Entrez le code reçu par email</p>
+      <p class="subtitle">Un code à 6 chiffres a été envoyé à <strong>{{ email }}</strong></p>
+
+      <p *ngIf="errorMessage" class="auth-error">{{ errorMessage }}</p>
+      <p *ngIf="successMessage" class="auth-pending">{{ successMessage }}</p>
+
       <form [formGroup]="codeForm" (ngSubmit)="onSubmit()">
-        <label>Code</label>
-        <input formControlName="code" placeholder="Code de vérification" />
-        <button class="login-btn" type="submit">Vérifier</button>
+        <label for="code">Code de vérification</label>
+        <input id="code" formControlName="code" placeholder="123456" maxlength="6" inputmode="numeric" />
+        <p *ngIf="codeForm.get('code')?.invalid && codeForm.get('code')?.touched" class="field-error">
+          Le code doit contenir 6 chiffres.
+        </p>
+        <button class="login-btn" type="submit" [disabled]="isSubmitting || codeForm.invalid">
+          {{ isSubmitting ? 'Vérification...' : 'Vérifier' }}
+        </button>
       </form>
+
+      <p class="register-link" style="margin-top:1rem;">
+        Vous n'avez pas reçu le code ?
+        <button type="button" class="register-anchor" style="background:none;border:none;cursor:pointer;padding:0;"
+          (click)="resend()" [disabled]="isResending">
+          {{ isResending ? 'Envoi...' : 'Renvoyer' }}
+        </button>
+      </p>
     </div>
   </div>
 </div>

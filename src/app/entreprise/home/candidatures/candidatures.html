@@ -1,147 +1,147 @@
 <div class="page">
 
-  <!-- HEADER -->
-  <div class="header-candidatures">
-    <div class="header-left">
-      <h2>Nombre de Candidatures par post</h2>
-      <p>Gérez et analysez facilement les candidatures</p>
+    <!-- HEADER -->
+    <div class="header-candidatures">
+        <div class="header-left">
+            <h2>Candidatures par poste</h2>
+            <p>Consulter les candidatures</p>
+        </div>
+        <div class="header-right">
+        </div>
     </div>
-    <div class="header-right">
-    </div>
-  </div>
 
-  <!-- KPI -->
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <span>CANDIDATS</span>
-      <h2>{{ totalCandidats }}</h2>
+    <!-- KPI -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <span>CANDIDATS</span>
+            <h2>{{ totalCandidats }}</h2>
+        </div>
+        <div class="kpi-card">
+            <span>SCORE MOYEN</span>
+            <h2>{{ avgScore }} <small>/100</small></h2>
+        </div>
+        <div class="kpi-card">
+            <span>TOP CANDIDATS</span>
+            <h2>{{ topCandidats }}</h2>
+            <p>{{ percentTop }}%</p>
+        </div>
     </div>
-    <div class="kpi-card">
-      <span>SCORE MOYEN</span>
-      <h2>{{ avgScore }} <small>/100</small></h2>
-    </div>
-    <div class="kpi-card">
-      <span>TOP CANDIDATS</span>
-      <h2>{{ topCandidats }}</h2>
-      <p>{{ percentTop }}%</p>
-    </div>
-  </div>
 
-  <!-- FILTRE SELECT -->
-  <div class="filter-select-row">
-    <select [(ngModel)]="selectedPoste" class="filter-select">
+    <!-- FILTRE SELECT -->
+    <div class="filter-select-row">
+        <select [(ngModel)]="selectedPoste" class="filter-select">
       <option *ngFor="let p of postes" [value]="p">
         {{ p === 'Tous' ? 'Tous les domaines' : p }}
       </option>
     </select>
-  </div>
-
-  <div class="state-info" *ngIf="isLoading && filteredCandidatures.length === 0">Chargement des candidatures...</div>
-  <div class="state-error" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <div class="state-info" *ngIf="filteredCandidatures.length === 0 && !errorMessage && !isLoading">
-    Aucune candidature disponible pour le moment.
-  </div>
-
-  <!-- ===== MODE "TOUS" : groupé par poste ===== -->
-  <ng-container *ngIf="!errorMessage && selectedPoste === 'Tous'">
-    <div class="poste-group" *ngFor="let group of groupedCandidatures">
-
-      <div class="poste-group-header">
-        <span class="dot-orange"></span>
-        <h4>{{ group.poste }}</h4>
-        <span>· {{ group.candidats.length }} candidat{{ group.candidats.length > 1 ? 's' : '' }}</span>
-      </div>
-
-      <div class="card" *ngFor="let c of group.candidats; let i = index">
-        <div class="avatar">
-          {{ getInitials(c.prenom, c.nom) }}
-          <span class="rank">{{ i + 1 }}</span>
-        </div>
-        <div class="info">
-          <h4>{{ c.prenom }} {{ c.nom }}</h4>
-          <p>{{ c.email }}</p>
-          <small>{{ c.ville }} · {{ c.timeAgo }}</small>
-          <div class="skills">
-            <span *ngFor="let s of c.competences">{{ s }}</span>
-          </div>
-        </div>
-        <div class="score-block">
-          <div class="score-label">Score d'employabilité</div>
-          <div class="score" [ngClass]="getScoreClass(c.score)">
-            <b>{{ c.score }}</b>
-            <small>{{ getScoreLabel(c.score) }}</small>
-          </div>
-        </div>
-        <div class="score-block">
-          <div class="score-label">Score ATS</div>
-          <div class="score-ats-empty">
-            <b>—</b>
-            <small>N/A</small>
-          </div>
-        </div>
-        <button class="btn" type="button" (click)="openCandidateCv(c)">Voir CV</button>
-      </div>
-
-    </div>
-  </ng-container>
-
-  <!-- ===== MODE FILTRE PAR POSTE ===== -->
-  <ng-container *ngIf="!errorMessage && selectedPoste !== 'Tous'">
-
-    <div class="section-header">
-      <span class="dot"></span>
-      <h3>{{ selectedPoste }} <span>· {{ totalCandidats }} candidats</span></h3>
     </div>
 
-    <div class="card" *ngFor="let c of filteredCandidatures; let i = index">
-      <div class="avatar">
-        {{ getInitials(c.prenom, c.nom) }}
-        <span class="rank">{{ i + 1 }}</span>
-      </div>
-      <div class="info">
-        <h4>{{ c.prenom }} {{ c.nom }}</h4>
-        <p>{{ c.email }}</p>
-        <small>{{ c.ville }} · {{ c.timeAgo }}</small>
-        <div class="skills">
-          <span *ngFor="let s of c.competences">{{ s }}</span>
-        </div>
-      </div>
-      <div class="score-block">
-        <div class="score-label">Score d'employabilité</div>
-        <div class="score" [ngClass]="getScoreClass(c.score)">
-          <b>{{ c.score }}</b>
-          <small>{{ getScoreLabel(c.score) }}</small>
-        </div>
-      </div>
-      <div class="score-block">
-        <div class="score-label">Score ATS</div>
-        <div class="score-ats-empty">
-          <b>—</b>
-          <small>N/A</small>
-        </div>
-      </div>
-      <button class="btn" type="button" (click)="openCandidateCv(c)">Voir CV</button>
+    <div class="state-info" *ngIf="isLoading && filteredCandidatures.length === 0">Chargement des candidatures...</div>
+    <div class="state-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="state-info" *ngIf="filteredCandidatures.length === 0 && !errorMessage && !isLoading">
+        Aucune candidature disponible pour le moment.
     </div>
 
-  </ng-container>
+    <!-- ===== MODE "TOUS" : groupé par poste ===== -->
+    <ng-container *ngIf="!errorMessage && selectedPoste === 'Tous'">
+        <div class="poste-group" *ngFor="let group of groupedCandidatures">
 
-  <div class="cv-modal-backdrop" *ngIf="isCvModalOpen" (click)="closeCvModal()">
-    <div class="cv-modal" (click)="$event.stopPropagation()">
-      <div class="cv-modal-header">
-        <h3>CV de {{ selectedCvStudentName || 'l\'étudiant' }}</h3>
-        <button class="cv-modal-close" type="button" (click)="closeCvModal()" aria-label="Fermer">×</button>
-      </div>
+            <div class="poste-group-header">
+                <span class="dot-orange"></span>
+                <h4>{{ group.poste }}</h4>
+                <span>· {{ group.candidats.length }} candidat{{ group.candidats.length > 1 ? 's' : '' }}</span>
+            </div>
 
-      <div class="cv-modal-body">
-        <div class="state-info" *ngIf="isCvLoading">Chargement du CV...</div>
-        <div class="state-error" *ngIf="!isCvLoading && cvErrorMessage">{{ cvErrorMessage }}</div>
+            <div class="card" *ngFor="let c of group.candidats; let i = index">
+                <div class="avatar">
+                    {{ getInitials(c.prenom, c.nom) }}
+                    <span class="rank">{{ i + 1 }}</span>
+                </div>
+                <div class="info">
+                    <h4>{{ c.prenom }} {{ c.nom }}</h4>
+                    <p>{{ c.email }}</p>
+                    <small>{{ c.ville }} · {{ c.timeAgo }}</small>
+                    <div class="skills">
+                        <span *ngFor="let s of c.competences">{{ s }}</span>
+                    </div>
+                </div>
+                <div class="score-block">
+                    <div class="score-label">Score d'employabilité</div>
+                    <div class="score" [ngClass]="getScoreClass(c.score)">
+                        <b>{{ c.score }}</b>
+                        <small>{{ getScoreLabel(c.score) }}</small>
+                    </div>
+                </div>
+                <div class="score-block">
+                    <div class="score-label">Score ATS</div>
+                    <div class="score-ats-empty">
+                        <b>—</b>
+                        <small>N/A</small>
+                    </div>
+                </div>
+                <button class="btn" type="button" (click)="openCandidateCv(c)">Voir CV</button>
+            </div>
 
-        <ng-container *ngIf="!isCvLoading && selectedCv">
-          <ng-container *ngComponentOutlet="cvPreviewComponent; inputs: { cv: selectedCv, profile: selectedCvProfile }">
-          </ng-container>
-        </ng-container>
-      </div>
+        </div>
+    </ng-container>
+
+    <!-- ===== MODE FILTRE PAR POSTE ===== -->
+    <ng-container *ngIf="!errorMessage && selectedPoste !== 'Tous'">
+
+        <div class="section-header">
+            <span class="dot"></span>
+            <h3>{{ selectedPoste }} <span>· {{ totalCandidats }} candidats</span></h3>
+        </div>
+
+        <div class="card" *ngFor="let c of filteredCandidatures; let i = index">
+            <div class="avatar">
+                {{ getInitials(c.prenom, c.nom) }}
+                <span class="rank">{{ i + 1 }}</span>
+            </div>
+            <div class="info">
+                <h4>{{ c.prenom }} {{ c.nom }}</h4>
+                <p>{{ c.email }}</p>
+                <small>{{ c.ville }} · {{ c.timeAgo }}</small>
+                <div class="skills">
+                    <span *ngFor="let s of c.competences">{{ s }}</span>
+                </div>
+            </div>
+            <div class="score-block">
+                <div class="score-label">Score d'employabilité</div>
+                <div class="score" [ngClass]="getScoreClass(c.score)">
+                    <b>{{ c.score }}</b>
+                    <small>{{ getScoreLabel(c.score) }}</small>
+                </div>
+            </div>
+            <div class="score-block">
+                <div class="score-label">Score ATS</div>
+                <div class="score-ats-empty">
+                    <b>—</b>
+                    <small>N/A</small>
+                </div>
+            </div>
+            <button class="btn" type="button" (click)="openCandidateCv(c)">Voir CV</button>
+        </div>
+
+    </ng-container>
+
+    <div class="cv-modal-backdrop" *ngIf="isCvModalOpen" (click)="closeCvModal()">
+        <div class="cv-modal" (click)="$event.stopPropagation()">
+            <div class="cv-modal-header">
+                <h3>CV de {{ selectedCvStudentName || 'l\'étudiant' }}</h3>
+                <button class="cv-modal-close" type="button" (click)="closeCvModal()" aria-label="Fermer">×</button>
+            </div>
+
+            <div class="cv-modal-body">
+                <div class="state-info" *ngIf="isCvLoading">Chargement du CV...</div>
+                <div class="state-error" *ngIf="!isCvLoading && cvErrorMessage">{{ cvErrorMessage }}</div>
+
+                <ng-container *ngIf="!isCvLoading && selectedCv">
+                    <ng-container *ngComponentOutlet="cvPreviewComponent; inputs: { cv: selectedCv, profile: selectedCvProfile }">
+                    </ng-container>
+                </ng-container>
+            </div>
+        </div>
     </div>
-  </div>
 
 </div>

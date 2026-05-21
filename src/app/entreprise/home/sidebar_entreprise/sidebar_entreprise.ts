@@ -44,6 +44,12 @@ export class SidebarEntreprise implements OnInit, OnDestroy {
 
   menuItems = [
   {
+    key: 'fiche-signaletique',
+    label: 'Fiche signalétique',
+    route: '/entreprise/fiche-signaletique',
+    exact: false,
+  },
+  {
     key: 'offres',
     label: 'Offres d\'emploi',
     route: '/entreprise/offres',
@@ -59,12 +65,6 @@ export class SidebarEntreprise implements OnInit, OnDestroy {
     key: 'feedback',
     label: 'Feedback',
     route: '/entreprise/feedback',
-    exact: false,
-  },
-  {
-    key: 'fiche-signaletique',
-    label: 'Fiche signalétique',
-    route: '/entreprise/fiche-signaletique',
     exact: false,
   },
   {

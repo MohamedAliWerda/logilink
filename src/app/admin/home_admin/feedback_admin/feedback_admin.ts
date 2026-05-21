@@ -10,7 +10,7 @@ interface OldStudent {
   fullName: string;
   email: string;
   promotion: number;
-  status: 'À répondu' | 'Non contacté' | 'Invité';
+  status: 'À répondu' | 'Non contacté' | 'Touché';
   company?: string;
   position?: string;
   rating?: number;
@@ -114,6 +114,14 @@ L'équipe ISGI`;
 
   showSuccessNotification: boolean = false;
   successMessage: string = '';
+  showErrorNotification: boolean = false;
+  errorNotifMessage: string = '';
+  private notifTimer: number | undefined;
+
+  showConfirmModal: boolean = false;
+  confirmModalMessage: string = '';
+  private pendingConfirmCallback: (() => void) | null = null;
+
   feedbackStudents: OldStudent[] = [];
   enterpriseFeedbacks: EnterpriseFeedback[] = [];
   private refreshIntervalId: number | undefined;
@@ -390,11 +398,11 @@ L'équipe ISGI`;
       }
     }
 
-    // Status detection: only 'Non contacté' or 'Invité'.
+    // Status detection: only 'Non contacté' or 'Touché'.
     const statutInv = (row['STATUT INVITATION'] ?? row['STATUT_INVITATION'] ?? row.statut ?? row.status ?? '').toString().trim().toLowerCase();
     let status: OldStudent['status'] = 'Non contacté';
-    if (statutInv.includes('invit')) {
-      status = 'Invité';
+    if (statutInv.includes('touch') || statutInv.includes('invit')) {
+      status = 'Touché';
     }
 
     const employmentStatus = (row.employment_status ?? row['STATUT EMPLOI'] ?? row['STATUT_EMPLOI'] ?? row.statut_emploi) as OldStudent['employmentStatus'];
@@ -677,7 +685,60 @@ L'équipe ISGI`;
       window.clearInterval(this.refreshIntervalId);
       this.refreshIntervalId = undefined;
     }
+    if (this.notifTimer !== undefined) {
+      window.clearTimeout(this.notifTimer);
+    }
     this.destroyAllCharts();
+  }
+
+  private showSuccess(message: string): void {
+    this.successMessage = message;
+    this.showSuccessNotification = true;
+    this.showErrorNotification = false;
+    if (this.notifTimer !== undefined) window.clearTimeout(this.notifTimer);
+    this.notifTimer = window.setTimeout(() => {
+      this.showSuccessNotification = false;
+      this.cdr.markForCheck();
+    }, 5000);
+    this.cdr.markForCheck();
+  }
+
+  private showError(message: string): void {
+    this.errorNotifMessage = message;
+    this.showErrorNotification = true;
+    this.showSuccessNotification = false;
+    if (this.notifTimer !== undefined) window.clearTimeout(this.notifTimer);
+    this.notifTimer = window.setTimeout(() => {
+      this.showErrorNotification = false;
+      this.cdr.markForCheck();
+    }, 6000);
+    this.cdr.markForCheck();
+  }
+
+  private openConfirm(message: string, callback: () => void): void {
+    this.confirmModalMessage = message;
+    this.pendingConfirmCallback = callback;
+    this.showConfirmModal = true;
+    this.cdr.markForCheck();
+  }
+
+  onConfirmYes(): void {
+    this.showConfirmModal = false;
+    const cb = this.pendingConfirmCallback;
+    this.pendingConfirmCallback = null;
+    if (cb) cb();
+    this.cdr.markForCheck();
+  }
+
+  onConfirmNo(): void {
+    this.showConfirmModal = false;
+    this.pendingConfirmCallback = null;
+    this.cdr.markForCheck();
+  }
+
+  closeErrorNotif(): void {
+    this.showErrorNotification = false;
+    this.cdr.markForCheck();
   }
 
   get dashboardLastUpdate(): string {
@@ -998,7 +1059,7 @@ L'équipe ISGI`;
 
   get stats(): StatCard[] {
     const responded = this.oldStudents.filter(s => s.status === 'À répondu').length;
-    const invited = this.oldStudents.filter(s => s.status === 'Invité').length;
+    const invited = this.oldStudents.filter(s => s.status === 'Touché').length;
 
     return [
       { value: this.oldStudents.length.toString(), label: 'Anciens recensés' },
@@ -1008,7 +1069,7 @@ L'équipe ISGI`;
   }
 
   get invitedCount(): number {
-    return this.oldStudents.filter(s => s.status === 'Invité').length;
+    return this.oldStudents.filter(s => s.status === 'Touché').length;
   }
 
   get respondedCount(): number {
@@ -1017,6 +1078,10 @@ L'équipe ISGI`;
 
   get waitingResponseCount(): number {
     return this.oldStudents.filter(s => s.status !== 'À répondu').length;
+  }
+
+  get uncontactedCount(): number {
+    return this.oldStudents.filter(s => s.status === 'Non contacté').length;
   }
 
   get feedbackCount(): number {
@@ -1215,7 +1280,7 @@ L'équipe ISGI`;
 
     const map = [
       { label: 'Répondu', count: this.respondedCount, color: '#1D9E75' },
-      { label: 'Invité', count: this.invitedCount, color: '#F5A623' },
+      { label: 'Touché', count: this.invitedCount, color: '#F5A623' },
       {
         label: 'Non contacté',
         count: this.oldStudents.filter(student => student.status === 'Non contacté').length,
@@ -1529,7 +1594,7 @@ L'équipe ISGI`;
       return 'badge-green';
     }
 
-    if (status === 'Invité') {
+    if (status === 'Touché') {
       return 'badge-blue';
     }
 
@@ -1542,7 +1607,7 @@ L'équipe ISGI`;
         return 'status-responded';
       case 'Non contacté':
         return 'status-not-contacted';
-      case 'Invité':
+      case 'Touché':
         return 'status-invited';
       default:
         return '';
@@ -1553,7 +1618,7 @@ L'équipe ISGI`;
     switch (status) {
       case 'À répondu':
         return '✓';
-      case 'Invité':
+      case 'Touché':
         return '✉';
       default:
         return '○';
@@ -1579,18 +1644,40 @@ L'équipe ISGI`;
 
   sendInvitation(studentId: string): void {
     const student = this.oldStudents.find(s => s.id === studentId);
-    if (student && student.status === 'Non contacté') {
-      student.status = 'Invité';
-      alert(`Invitation envoyée à ${student.fullName}`);
-      this.scheduleDashboardCharts();
-    }
+    if (!student || student.status !== 'Non contacté') return;
+
+    this.supabaseService.sendSingleAncienEtudiantInvitation(studentId, {
+      subject: this.emailSubject,
+      message: this.emailMessage,
+    })
+      .then(() => {
+        student.status = 'Touché';
+        this.showSuccess(`Invitation envoyée à ${student.fullName}`);
+        this.scheduleDashboardCharts();
+      })
+      .catch((err: unknown) => {
+        const e = err as any;
+        const msg = e?.error?.message ?? e?.message ?? 'Erreur inconnue';
+        this.showError(`Échec d'envoi pour ${student.fullName} : ${msg}`);
+      });
   }
 
   deleteStudent(studentId: string): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet ancien diplômé ?')) {
-      this.oldStudents = this.oldStudents.filter(s => s.id !== studentId);
-      this.scheduleDashboardCharts();
-    }
+    const student = this.oldStudents.find(s => s.id === studentId);
+    const name = student?.fullName ?? 'cet ancien diplômé';
+    this.openConfirm(`Êtes-vous sûr de vouloir supprimer ${name} ?`, () => {
+      this.supabaseService.deleteAncienEtudiant(studentId, student?.email)
+        .then(() => {
+          this.oldStudents = this.oldStudents.filter(s => s.id !== studentId);
+          this.showSuccess(`${name} a été supprimé.`);
+          this.scheduleDashboardCharts();
+        })
+        .catch((err: unknown) => {
+          const e = err as any;
+          const msg = e?.error?.message ?? e?.message ?? 'Erreur inconnue';
+          this.showError(`Impossible de supprimer ${name} : ${msg}`);
+        });
+    });
   }
 
   trackById(index: number, item: OldStudent): string {
@@ -1620,7 +1707,7 @@ L'équipe ISGI`;
     const promotion = this.newStudentForm.promotion.trim();
 
     if (!fullName || !email || !promotion) {
-      alert('Veuillez renseigner le nom, l’email et la promotion.');
+      this.showError('Veuillez renseigner le nom, l\'email et la promotion.');
       return;
     }
 
@@ -1659,15 +1746,10 @@ L'équipe ISGI`;
       const mappedStudent = this.mapRowToOldStudent(createdRow);
       await this.refreshAllData();
       this.showAddStudentModal = false;
-      this.successMessage = `${mappedStudent.fullName} a été ajouté au tableau.`;
-      this.showSuccessNotification = true;
-
-      setTimeout(() => {
-        this.showSuccessNotification = false;
-      }, 5000);
+      this.showSuccess(`${mappedStudent.fullName} a été ajouté au tableau.`);
     } catch (err) {
       console.error('Failed to add ancien étudiant', err);
-      alert('Impossible d’ajouter cet ancien diplômé.');
+      this.showError('Impossible d\'ajouter cet ancien diplômé. Vérifiez que la séquence Supabase est synchronisée.');
     }
   }
 
@@ -1685,50 +1767,46 @@ L'équipe ISGI`;
     const uncontactedCount = this.getUncontactedStudents().length;
 
     if (uncontactedCount === 0) {
-      alert('Aucun ancien diplômé à contacter');
+      this.showError('Aucun ancien diplômé à contacter.');
       return;
     }
 
-    if (!confirm(`Êtes-vous sûr de vouloir envoyer ${uncontactedCount} email(s) ?\n\nObjet: ${this.emailSubject}`)) {
-      return;
-    }
+    this.openConfirm(
+      `Envoyer ${uncontactedCount} email(s) ?\n\nObjet : ${this.emailSubject}`,
+      async () => {
+        this.isSendingEmails = true;
+        this.cdr.markForCheck();
 
-    this.isSendingEmails = true;
-    this.cdr.markForCheck();
+        try {
+          const result = await this.supabaseService.sendAncienEtudiantInvitations({
+            subject: this.emailSubject,
+            message: this.emailMessage,
+          });
 
-    try {
-      const result = await this.supabaseService.sendAncienEtudiantInvitations({
-        subject: this.emailSubject,
-        message: this.emailMessage,
-      });
+          const sent = result?.sent ?? 0;
+          const failed = result?.failed ?? 0;
+          const attempted = result?.attempted ?? uncontactedCount;
 
-      const sent = result?.sent ?? 0;
-      const failed = result?.failed ?? 0;
-      const attempted = result?.attempted ?? uncontactedCount;
+          if (sent > 0) {
+            this.showSuccess(failed > 0
+              ? `${sent}/${attempted} email(s) envoyé(s). ${failed} échec(s).`
+              : `${sent} email(s) envoyé(s) avec succès !`);
+          } else {
+            const firstError = result?.errors?.[0]?.reason;
+            this.showError(`Aucun email envoyé.${firstError ? ' ' + firstError : ''}`);
+          }
 
-      if (sent > 0) {
-        this.successMessage = failed > 0
-          ? `${sent}/${attempted} email(s) envoyé(s). ${failed} échec(s).`
-          : `${sent} email(s) envoyé(s) avec succès!`;
-        this.showSuccessNotification = true;
-        setTimeout(() => {
-          this.showSuccessNotification = false;
+          this.showSendEmailModal = false;
+          await this.refreshAllData();
+        } catch (err) {
+          console.error('Failed to send invitations', err);
+          const message = err instanceof Error ? err.message : 'Erreur inconnue';
+          this.showError(`Échec de l'envoi : ${message}`);
+        } finally {
+          this.isSendingEmails = false;
           this.cdr.markForCheck();
-        }, 5000);
-      } else {
-        const firstError = result?.errors?.[0]?.reason;
-        alert(`Aucun email envoyé.${firstError ? `\n${firstError}` : ''}`);
-      }
-
-      this.showSendEmailModal = false;
-      await this.refreshAllData();
-    } catch (err) {
-      console.error('Failed to send invitations', err);
-      const message = err instanceof Error ? err.message : 'Erreur inconnue';
-      alert(`Échec de l'envoi des emails : ${message}`);
-    } finally {
-      this.isSendingEmails = false;
-      this.cdr.markForCheck();
-    }
+        }
+      },
+    );
   }
 }

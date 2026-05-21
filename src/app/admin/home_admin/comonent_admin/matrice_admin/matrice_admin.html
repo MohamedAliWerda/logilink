@@ -1,152 +1,125 @@
 <section class="matrix-page" aria-labelledby="matrix-title">
 
-  <!-- ── Header ── -->
-  <header class="matrix-header">
-    <h1 id="matrix-title">Adéquation Formation-Emploi</h1>
-    <p>Matrice de couverture des compétences — ISGI Sfax · <strong>24 métiers</strong> × <strong>{{ allMatieres.length }} matières</strong></p>
-  </header>
+    <!-- ── Header ── -->
+    <header class="matrix-header">
+        <h1 id="matrix-title">Adéquation Formation-Emploi</h1>
+        <p>Matrice de couverture des compétences — ISGI Sfax · <strong>24 métiers</strong> × <strong>{{ allMatieres.length }} matières</strong></p>
+    </header>
 
-  <!-- ── Filter Bar ── -->
-  <div class="filter-bar">
-    <!-- Niveau row -->
-    <div class="filter-row">
-      <span class="filter-label">Niveau :</span>
-      <div class="filter-pills">
-        <button
-          class="pill"
-          [class.pill-active]="selectedNiveau() === 'Toutes'"
-          (click)="setNiveau('Toutes')"
-          type="button">
+    <!-- ── Filter Bar ── -->
+    <div class="filter-bar">
+        <!-- Niveau row -->
+        <div class="filter-row">
+            <span class="filter-label">Parcours :</span>
+            <div class="filter-pills">
+                <button class="pill" [class.pill-active]="selectedNiveau() === 'Toutes'" (click)="setNiveau('Toutes')" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Toutes
+          Tous
         </button>
-        <button
-          class="pill"
-          [class.pill-active]="selectedNiveau() === 'Licences'"
-          (click)="setNiveau('Licences')"
-          type="button">
+                <button class="pill" [class.pill-active]="selectedNiveau() === 'Licences'" (click)="setNiveau('Licences')" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
           Licences
         </button>
-        <button
-          class="pill pill-master"
-          [class.pill-active]="selectedNiveau() === 'Masters'"
-          (click)="setNiveau('Masters')"
-          type="button">
+                <button class="pill pill-master" [class.pill-active]="selectedNiveau() === 'Masters'" (click)="setNiveau('Masters')" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
           Masters
         </button>
-      </div>
-    </div>
+            </div>
+        </div>
 
-    <!-- Filière row -->
-    <div class="filter-row" *ngIf="filiereOptions().length > 1">
-      <span class="filter-label">Filière :</span>
-      <div class="filter-pills">
-        <button
-          *ngFor="let f of filiereOptions()"
-          class="pill"
-          [class.pill-active]="selectedFiliere() === f"
-          (click)="setFiliere(f)"
-          type="button">
+        <!-- Filière row -->
+        <div class="filter-row" *ngIf="filiereOptions().length > 1">
+            <span class="filter-label">Filière :</span>
+            <div class="filter-pills">
+                <button *ngFor="let f of filiereOptions()" class="pill" [class.pill-active]="selectedFiliere() === f" (click)="setFiliere(f)" type="button">
           <span *ngIf="f !== 'Toutes'" class="filiere-badge-inline {{ getFiliereColorClass(f) }}">
             {{ getFiliereCode(f) }}
           </span>
           {{ f === 'Toutes' ? 'Toutes' : f }}
         </button>
-      </div>
-    </div>
+            </div>
+        </div>
 
-    <!-- Search row -->
-    <div class="filter-search-row">
-      <div class="search-input-wrap">
-        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Search row -->
+        <div class="filter-search-row">
+            <div class="search-input-wrap">
+                <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <span class="search-count">{{ filteredMatieres().length }} matière{{ filteredMatieres().length !== 1 ? 's' : '' }}</span>
-        <span class="search-sep">—</span>
-        <input
-          class="search-input"
-          type="text"
-          [placeholder]="'Rechercher dans ' + searchPlaceholder + '...'"
-          [value]="searchQuery()"
-          (input)="onSearchInput($event)" />
-      </div>
-      <button
-        *ngIf="searchQuery() || selectedNiveau() !== 'Toutes' || selectedFiliere() !== 'Toutes'"
-        class="reset-btn"
-        (click)="resetFilters()"
-        type="button">
+                <span class="search-count">{{ filteredMatieres().length }} matière{{ filteredMatieres().length !== 1 ? 's' : '' }}</span>
+                <span class="search-sep">—</span>
+                <input class="search-input" type="text" [placeholder]="'Rechercher dans ' + searchPlaceholder + '...'" [value]="searchQuery()" (input)="onSearchInput($event)" />
+            </div>
+            <button *ngIf="searchQuery() || selectedNiveau() !== 'Toutes' || selectedFiliere() !== 'Toutes'" class="reset-btn" (click)="resetFilters()" type="button">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
         Réinitialiser
       </button>
-    </div>
-  </div>
-
-  <!-- ── Légende ── -->
-  <div class="legend-bar">
-    <span class="legend-title">Légende :</span>
-    <span class="legend-item"><span class="dot score-0"></span>Non pertinent</span>
-    <span class="legend-item"><span class="dot score-02"></span>Complémentaire</span>
-    <span class="legend-item"><span class="dot score-04"></span>Utile</span>
-    <span class="legend-item"><span class="dot score-06"></span>Important</span>
-    <span class="legend-item"><span class="dot score-08"></span>Très important</span>
-    <span class="legend-item"><span class="dot score-10"></span>Fondamental</span>
-  </div>
-
-  <!-- ── Matrice principale ── -->
-  <article class="panel">
-    <div class="panel-header">
-      <h2>Matrice de Couverture</h2>
-      <span class="counter-badge">{{ visibleMatieres.length }} / {{ filteredMatieres().length }} matières affichées · 24 métiers</span>
+        </div>
     </div>
 
-    <!-- Empty state -->
-    <div class="empty-state" *ngIf="filteredMatieres().length === 0">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- ── Légende ── -->
+    <div class="legend-bar">
+        <span class="legend-title">Légende :</span>
+        <span class="legend-item"><span class="dot score-0"></span>Non pertinent</span>
+        <span class="legend-item"><span class="dot score-02"></span>Complémentaire</span>
+        <span class="legend-item"><span class="dot score-04"></span>Utile</span>
+        <span class="legend-item"><span class="dot score-06"></span>Important</span>
+        <span class="legend-item"><span class="dot score-08"></span>Très important</span>
+        <span class="legend-item"><span class="dot score-10"></span>Fondamental</span>
+    </div>
+
+    <!-- ── Matrice principale ── -->
+    <article class="panel">
+        <div class="panel-header">
+            <h2>Matrice de Couverture</h2>
+            <span class="counter-badge">{{ visibleMatieres.length }} / {{ filteredMatieres().length }} matières affichées · 24 métiers</span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" *ngIf="filteredMatieres().length === 0">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <p>Aucune matière trouvée pour ces filtres.</p>
-      <button class="voir-tout-btn" (click)="resetFilters()" type="button">Réinitialiser les filtres</button>
-    </div>
+            <p>Aucune matière trouvée pour ces filtres.</p>
+            <button class="voir-tout-btn" (click)="resetFilters()" type="button">Réinitialiser les filtres</button>
+        </div>
 
-    <div class="table-wrap" *ngIf="filteredMatieres().length > 0">
-      <table>
-        <thead>
-          <tr>
-            <th class="sticky-col sticky-filiere">Filière / S.</th>
-            <th class="sticky-col sticky-matiere">Matière</th>
-            <th *ngFor="let m of metiers; trackBy: trackById" class="metier-th">
-              <div class="metier-header" [title]="m.nameFr">
-                <span class="metier-code">{{ m.code }}</span>
-                <span class="metier-name">{{ m.nameFr }}</span>
-              </div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let mat of visibleMatieres; trackBy: trackById">
-            <td class="sticky-col sticky-filiere filiere-cell">
-              <span class="filiere-badge {{ getFiliereColorClass(mat.filiere) }}">{{ getFiliereCode(mat.filiere) }}</span>
-              <span class="semestre-tag">{{ mat.semestre }}</span>
-            </td>
-            <td class="sticky-col sticky-matiere matiere-name" [title]="mat.nameFr">{{ mat.nameFr }}</td>
-            <td *ngFor="let m of metiers; let i = index; trackBy: trackById">
-              <div class="score-cell {{ getScoreClass(getScore(mat, i)) }}"
-                   [title]="m.nameFr + ' — ' + getScoreLabel(getScore(mat, i))">
-                <span class="score-val" *ngIf="getScore(mat, i) > 0">{{ getScore(mat, i) }}</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <div class="table-wrap" *ngIf="filteredMatieres().length > 0">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="sticky-col sticky-filiere">Filière / S.</th>
+                        <th class="sticky-col sticky-matiere">Matière</th>
+                        <th *ngFor="let m of metiers; trackBy: trackById" class="metier-th">
+                            <div class="metier-header" [title]="m.nameFr">
+                                <span class="metier-code">{{ m.code }}</span>
+                                <span class="metier-name">{{ m.nameFr }}</span>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let mat of visibleMatieres; trackBy: trackById">
+                        <td class="sticky-col sticky-filiere filiere-cell">
+                            <span class="filiere-badge {{ getFiliereColorClass(mat.filiere) }}">{{ getFiliereCode(mat.filiere) }}</span>
+                            <span class="semestre-tag">{{ mat.semestre }}</span>
+                        </td>
+                        <td class="sticky-col sticky-matiere matiere-name" [title]="mat.nameFr">{{ mat.nameFr }}</td>
+                        <td *ngFor="let m of metiers; let i = index; trackBy: trackById">
+                            <div class="score-cell {{ getScoreClass(getScore(mat, i)) }}" [title]="m.nameFr + ' — ' + getScoreLabel(getScore(mat, i))">
+                                <span class="score-val" *ngIf="getScore(mat, i) > 0">{{ getScore(mat, i) }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-    <!-- ── Bouton Voir tout ── -->
-    <div class="voir-tout-wrap" *ngIf="filteredMatieres().length > INITIAL_MATIERES">
-      <button class="voir-tout-btn" (click)="toggleShowAll()" type="button">
+        <!-- ── Bouton Voir tout ── -->
+        <div class="voir-tout-wrap" *ngIf="filteredMatieres().length > INITIAL_MATIERES">
+            <button class="voir-tout-btn" (click)="toggleShowAll()" type="button">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
              stroke-linecap="round" stroke-linejoin="round">
           <ng-container *ngIf="!showAll()">
@@ -158,21 +131,21 @@
         </svg>
         {{ showAll() ? 'Réduire la matrice' : 'Voir toute la matrice (' + filteredMatieres().length + ' matières)' }}
       </button>
-    </div>
-  </article>
+        </div>
+    </article>
 
-  <!-- ── Résumé métiers ── -->
-  <article class="panel">
-    <div class="panel-header">
-      <h2>Les 24 Métiers couverts</h2>
-      <span class="info-badge">Transport · Logistique · Supply Chain</span>
-    </div>
-    <div class="metiers-grid">
-      <div class="metier-card" *ngFor="let m of metiers; trackBy: trackById">
-        <span class="metier-card-code">{{ m.code }}</span>
-        <span class="metier-card-name">{{ m.nameFr }}</span>
-      </div>
-    </div>
-  </article>
+    <!-- ── Résumé métiers ── -->
+    <article class="panel">
+        <div class="panel-header">
+            <h2>Les 24 Métiers couverts</h2>
+            <span class="info-badge">Transport · Logistique · Supply Chain</span>
+        </div>
+        <div class="metiers-grid">
+            <div class="metier-card" *ngFor="let m of metiers; trackBy: trackById">
+                <span class="metier-card-code">{{ m.code }}</span>
+                <span class="metier-card-name">{{ m.nameFr }}</span>
+            </div>
+        </div>
+    </article>
 
 </section>

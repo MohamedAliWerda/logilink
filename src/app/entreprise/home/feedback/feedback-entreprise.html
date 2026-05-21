@@ -1,285 +1,227 @@
 <!-- Loading state -->
 <div class="page-wrapper" *ngIf="screenState === 'loading'">
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Vérification de l'éligibilité...</p>
-  </div>
-  <div class="form-card" style="display:flex;align-items:center;justify-content:center;min-height:180px;">
-    <div style="text-align:center;color:#9ca3af;">
-      <div style="width:32px;height:32px;border:3px solid #f97316;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
-      Chargement...
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Vérification de l'éligibilité...</p>
     </div>
-  </div>
+    <div class="form-card" style="display:flex;align-items:center;justify-content:center;min-height:180px;">
+        <div style="text-align:center;color:#9ca3af;">
+            <div style="width:32px;height:32px;border:3px solid #f97316;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+            Chargement...
+        </div>
+    </div>
 </div>
 
 <!-- Locked state: no eligible offres yet -->
 <div class="page-wrapper" *ngIf="screenState === 'locked'">
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-  </div>
-  <div class="form-card" style="text-align:center;padding:48px 32px;">
-    <div style="font-size:3rem;margin-bottom:16px;">🔒</div>
-    <h2 style="color:#4f3314;margin:0 0 12px;">Feedback non disponible</h2>
-    <p style="color:#6f4d24;max-width:440px;margin:0 auto;line-height:1.6;">
-      Le formulaire de feedback sera accessible <strong>6 mois après</strong> la date de
-      publication de votre offre d'emploi. Vous recevrez un e-mail de notification dès que
-      votre feedback sera disponible.
-    </p>
-  </div>
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
+    </div>
+    <div class="form-card" style="text-align:center;padding:48px 32px;">
+        <div style="font-size:3rem;margin-bottom:16px;">🔒</div>
+        <h2 style="color:#4f3314;margin:0 0 12px;">Feedback non disponible</h2>
+        <p style="color:#6f4d24;max-width:440px;margin:0 auto;line-height:1.6;">
+            Le formulaire de feedback sera accessible <strong>6 mois après</strong> la date de publication de votre offre d'emploi. Vous recevrez un e-mail de notification dès que votre feedback sera disponible.
+        </p>
+    </div>
 </div>
 
 <!-- Already submitted state -->
 <div class="page-wrapper" *ngIf="screenState === 'submitted'">
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-  </div>
-  <div class="form-card success-card" style="text-align:center;padding:48px 32px;">
-    <div class="success-icon">✓</div>
-    <h2 class="success-title">Feedback déjà soumis</h2>
-    <p class="success-description">
-      Vous avez déjà complété le formulaire de feedback pour votre offre d'emploi.
-      ISGIS vous remercie de votre contribution à l'amélioration continue de nos formations.
-    </p>
-  </div>
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
+    </div>
+    <div class="form-card success-card" style="text-align:center;padding:48px 32px;">
+        <div class="success-icon">✓</div>
+        <h2 class="success-title">Feedback déjà soumis</h2>
+        <p class="success-description">
+            Vous avez déjà complété le formulaire de feedback pour votre offre d'emploi. ISGIS vous remercie de votre contribution à l'amélioration continue de nos formations.
+        </p>
+    </div>
 </div>
 
 <!-- Select offre state: multiple eligible offres -->
 <div class="page-wrapper" *ngIf="screenState === 'select'">
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Sélectionnez l'offre pour laquelle vous souhaitez soumettre un feedback.</p>
-  </div>
-  <div class="form-card">
-    <h2 class="question-title">Quelle offre souhaitez-vous évaluer ?</h2>
-    <div class="checkbox-group" style="margin-top:20px;">
-      <div
-        class="checkbox-item"
-        *ngFor="let offre of eligibleOffres"
-        style="padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,background 0.2s;"
-        (click)="selectOffre(offre)"
-      >
-        <strong style="color:#4f3314;">{{ offre.titre }}</strong>
-        <span style="display:block;font-size:0.85rem;color:#9ca3af;margin-top:4px;">
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Sélectionnez l'offre pour laquelle vous souhaitez soumettre un feedback.</p>
+    </div>
+    <div class="form-card">
+        <h2 class="question-title">Quelle offre souhaitez-vous évaluer ?</h2>
+        <div class="checkbox-group" style="margin-top:20px;">
+            <div class="checkbox-item" *ngFor="let offre of eligibleOffres" style="padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,background 0.2s;" (click)="selectOffre(offre)">
+                <strong style="color:#4f3314;">{{ offre.titre }}</strong>
+                <span style="display:block;font-size:0.85rem;color:#9ca3af;margin-top:4px;">
           Publiée le {{ offre.date_creation | date:'dd/MM/yyyy' }}
         </span>
-      </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Pre-question state -->
 <div class="page-wrapper" *ngIf="screenState === 'pre-question'">
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-  </div>
-  <div class="form-card" style="text-align:center;padding:40px 32px;">
-    <div style="font-size:2.5rem;margin-bottom:20px;">🎓</div>
-    <h2 class="question-title" style="margin-bottom:12px;">
-      Avez-vous accepté un étudiant de l'ISGIS dans le cadre de votre offre&nbsp;?
-    </h2>
-    <p style="color:#6f4d24;font-size:0.95rem;margin-bottom:8px;" *ngIf="selectedOffre">
-      Offre : <strong>{{ selectedOffre.titre }}</strong>
-    </p>
-    <p style="color:#9ca3af;font-size:0.875rem;margin-bottom:32px;line-height:1.5;">
-      Si vous avez recruté un diplômé ISGIS via cette offre, merci de compléter le
-      formulaire de feedback ci-dessous. Cela nous aide à améliorer continuellement
-      la qualité de nos formations.
-    </p>
-    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn btn-primary" type="button" (click)="acceptedStudent()" style="min-width:160px;">
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
+    </div>
+    <div class="form-card" style="text-align:center;padding:40px 32px;">
+        <div style="font-size:2.5rem;margin-bottom:20px;">🎓</div>
+        <h2 class="question-title" style="margin-bottom:12px;">
+            Avez-vous accepté un étudiant de l'ISGIS dans le cadre de votre offre&nbsp;?
+        </h2>
+        <p style="color:#6f4d24;font-size:0.95rem;margin-bottom:8px;" *ngIf="selectedOffre">
+            Offre : <strong>{{ selectedOffre.titre }}</strong>
+        </p>
+        <p style="color:#9ca3af;font-size:0.875rem;margin-bottom:32px;line-height:1.5;">
+            Si vous avez recruté un diplômé ISGIS via cette offre, merci de compléter le formulaire de feedback ci-dessous. Cela nous aide à améliorer continuellement la qualité de nos formations.
+        </p>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" type="button" (click)="acceptedStudent()" style="min-width:160px;">
         Oui, j'ai recruté
       </button>
-      <button class="btn btn-secondary" type="button" (click)="declinedStudent()" style="min-width:160px;">
+            <button class="btn btn-secondary" type="button" (click)="declinedStudent()" style="min-width:160px;">
         Non, pas cette fois
       </button>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Declined state -->
 <div class="page-wrapper" *ngIf="screenState === 'declined'">
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-  </div>
-  <div class="form-card success-card" style="text-align:center;padding:40px 32px;">
-    <div class="success-icon">✓</div>
-    <h2 class="success-title">Merci pour votre réponse !</h2>
-    <p class="success-description">
-      Nous prenons note de votre réponse. Si votre situation évolue ou si vous recrutez
-      un diplômé ISGIS à l'avenir, n'hésitez pas à revenir sur cette section.
-    </p>
-  </div>
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
+    </div>
+    <div class="form-card success-card" style="text-align:center;padding:40px 32px;">
+        <div class="success-icon">✓</div>
+        <h2 class="success-title">Merci pour votre réponse !</h2>
+        <p class="success-description">
+            Nous prenons note de votre réponse. Si votre situation évolue ou si vous recrutez un diplômé ISGIS à l'avenir, n'hésitez pas à revenir sur cette section.
+        </p>
+    </div>
 </div>
 
 <!-- Feedback form (7 steps) -->
 <div class="page-wrapper" *ngIf="screenState === 'form' && !submitSuccess">
-  <!-- Header Banner -->
-  <div class="page-header">
-    <h1>Boucle de feedback industrielle</h1>
-    <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-  </div>
+    <!-- Header Banner -->
+    <div class="page-header">
+        <h1>Boucle de feedback industriel</h1>
+        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
+    </div>
 
-  <!-- Progress Steps Tabs -->
-  <div class="steps-nav">
-    <div class="steps-tabs">
-      <button
-        *ngFor="let step of steps; let index = index"
-        class="tab-item"
-        [class.active]="index === currentStep"
-        [class.completed]="index < currentStep"
-        (click)="goToStep(index)"
-        type="button"
-      >
+    <!-- Progress Steps Tabs -->
+    <div class="steps-nav">
+        <div class="steps-tabs">
+            <button *ngFor="let step of steps; let index = index" class="tab-item" [class.active]="index === currentStep" [class.completed]="index < currentStep" (click)="goToStep(index)" type="button">
         <span class="tab-dot"></span>
         <span class="tab-label">Question {{ index + 1 }}</span>
       </button>
-    </div>
-    <div class="steps-progress">
-      <div class="progress-fill" [style.width.%]="progressPercent"></div>
-    </div>
-  </div>
-
-  <!-- Form Card -->
-  <div class="form-card">
-    <div class="form-group question-block">
-      <h2 class="question-title">
-        {{ steps[currentStep].question }}
-      </h2>
-      <p class="question-hint" *ngIf="steps[currentStep].hint">
-        {{ steps[currentStep].hint }}
-      </p>
+        </div>
+        <div class="steps-progress">
+            <div class="progress-fill" [style.width.%]="progressPercent"></div>
+        </div>
     </div>
 
-    <ng-container [ngSwitch]="steps[currentStep].type">
-      <!-- Radio Options -->
-      <div *ngSwitchCase="'radio'" class="checkbox-group">
-        <div class="checkbox-item" *ngFor="let option of steps[currentStep].options">
-          <input
-            type="radio"
-            [id]="'radio-' + option"
-            [name]="'step-' + currentStep"
-            [checked]="isRadioSelected(option)"
-            (change)="setRadio(option)"
-          />
-          <label [for]="'radio-' + option">{{ option }}</label>
+    <!-- Form Card -->
+    <div class="form-card">
+        <div class="form-group question-block">
+            <h2 class="question-title">
+                {{ steps[currentStep].question }}
+            </h2>
+            <p class="question-hint" *ngIf="steps[currentStep].hint">
+                {{ steps[currentStep].hint }}
+            </p>
         </div>
-      </div>
 
-      <!-- Checkbox Options -->
-      <div *ngSwitchCase="'checkbox'" class="checkbox-group">
-        <div class="checkbox-item" *ngFor="let option of steps[currentStep].options">
-          <input
-            type="checkbox"
-            [id]="'check-' + option"
-            [checked]="isGapSelected(option)"
-            [disabled]="!isGapSelected(option) && selectedGapCount >= 3"
-            (change)="toggleGap(option)"
-          />
-          <label [for]="'check-' + option">{{ option }}</label>
-        </div>
-        <input
-          *ngIf="isGapSelected('Autre')"
-          class="other-gap-input"
-          type="text"
-          [value]="form.otherGap"
-          (input)="onOtherGapInput($event)"
-          placeholder="Précisez (Autre)..."
-        />
-      </div>
+        <ng-container [ngSwitch]="steps[currentStep].type">
+            <!-- Radio Options -->
+            <div *ngSwitchCase="'radio'" class="checkbox-group">
+                <div class="checkbox-item" *ngFor="let option of steps[currentStep].options">
+                    <input type="radio" [id]="'radio-' + option" [name]="'step-' + currentStep" [checked]="isRadioSelected(option)" (change)="setRadio(option)" />
+                    <label [for]="'radio-' + option">{{ option }}</label>
+                </div>
+            </div>
 
-      <!-- Star Rating -->
-      <div *ngSwitchCase="'stars'" class="form-group">
-        <div class="rating-matrix">
-          <div class="rating-matrix-head">
-            <div class="rating-label-cell"></div>
-            <div class="rating-value-head" *ngFor="let value of ratingScale">{{ value }}</div>
-          </div>
+            <!-- Checkbox Options -->
+            <div *ngSwitchCase="'checkbox'" class="checkbox-group">
+                <div class="checkbox-item" *ngFor="let option of steps[currentStep].options">
+                    <input type="checkbox" [id]="'check-' + option" [checked]="isGapSelected(option)" [disabled]="!isGapSelected(option) && selectedGapCount >= 3" (change)="toggleGap(option)" />
+                    <label [for]="'check-' + option">{{ option }}</label>
+                </div>
+                <input *ngIf="isGapSelected('Autre')" class="other-gap-input" type="text" [value]="form.otherGap" (input)="onOtherGapInput($event)" placeholder="Précisez (Autre)..." />
+            </div>
 
-          <div class="rating-row" *ngFor="let label of ratingLabels; let index = index">
-            <div class="rating-label-cell">{{ label }}</div>
-            <button
-              *ngFor="let value of ratingScale"
-              type="button"
-              class="rating-circle"
-              [class.selected]="form.ratings[ratingKeys[index]] === value"
-              [attr.aria-label]="label + ' : note ' + value"
-              (click)="setRating(ratingKeys[index], value)"
-            ></button>
-          </div>
-        </div>
-      </div>
+            <!-- Star Rating -->
+            <div *ngSwitchCase="'stars'" class="form-group">
+                <div class="rating-matrix">
+                    <div class="rating-matrix-head">
+                        <div class="rating-label-cell"></div>
+                        <div class="rating-value-head" *ngFor="let value of ratingScale">{{ value }}</div>
+                    </div>
 
-      <!-- Satisfaction Scale -->
-      <div *ngSwitchCase="'satisfaction'" class="form-group">
-        <div class="satisfaction-labels">
-          <span>Très insatisfait</span>
-          <span>Extrêmement satisfait</span>
-        </div>
-        <div class="satisfaction-scale">
-          <button
-            *ngFor="let value of satisfactionScale"
-            type="button"
-            class="satisfaction-btn"
-            [class.selected]="form.q7 === value"
-            (click)="setSatisfaction(value)"
-          >
+                    <div class="rating-row" *ngFor="let label of ratingLabels; let index = index">
+                        <div class="rating-label-cell">{{ label }}</div>
+                        <button *ngFor="let value of ratingScale" type="button" class="rating-circle" [class.selected]="form.ratings[ratingKeys[index]] === value" [attr.aria-label]="label + ' : note ' + value" (click)="setRating(ratingKeys[index], value)"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Satisfaction Scale -->
+            <div *ngSwitchCase="'satisfaction'" class="form-group">
+                <div class="satisfaction-labels">
+                    <span>Très insatisfait</span>
+                    <span>Extrêmement satisfait</span>
+                </div>
+                <div class="satisfaction-scale">
+                    <button *ngFor="let value of satisfactionScale" type="button" class="satisfaction-btn" [class.selected]="form.q7 === value" (click)="setSatisfaction(value)">
             {{ value }}
           </button>
+                </div>
+                <div class="satisfaction-text">{{ satisfactionText() }}</div>
+            </div>
+        </ng-container>
+
+        <div class="error-text" *ngIf="submitError">
+            {{ submitError }}
         </div>
-        <div class="satisfaction-text">{{ satisfactionText() }}</div>
-      </div>
-    </ng-container>
 
-    <div class="error-text" *ngIf="submitError">
-      {{ submitError }}
-    </div>
-
-    <div class="form-actions">
-      <button
-        class="btn btn-secondary"
-        type="button"
-        (click)="previousStep()"
-        [style.visibility]="currentStep === 0 ? 'hidden' : 'visible'"
-      >
+        <div class="form-actions">
+            <button class="btn btn-secondary" type="button" (click)="previousStep()" [style.visibility]="currentStep === 0 ? 'hidden' : 'visible'">
         ← Précédent
       </button>
 
-      <button
-        class="btn btn-primary"
-        type="button"
-        (click)="nextStep()"
-        [disabled]="isSubmitting"
-      >
+            <button class="btn btn-primary" type="button" (click)="nextStep()" [disabled]="isSubmitting">
         {{ isSubmitting ? 'Enregistrement...' : (isLastStep ? 'Soumettre ✓' : 'Suivant →') }}
       </button>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Success Template (after form submission) -->
 <div class="page-wrapper" *ngIf="screenState === 'form' && submitSuccess">
-  <div class="page-header">
-    <h1>Formulaire d'Évaluation Société</h1>
-    <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-  </div>
-
-  <div class="form-card success-card">
-    <div class="success-icon">
-      ✓
+    <div class="page-header">
+        <h1>Formulaire d'Évaluation Société</h1>
+        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
     </div>
-    <h2 class="success-title">Merci pour votre feedback !</h2>
-    <p class="success-description">
-      Votre évaluation a bien été enregistrée. ISGIS vous remercie de votre confiance et de votre contribution à l'amélioration continue de nos formations.
-    </p>
-  </div>
+
+    <div class="form-card success-card">
+        <div class="success-icon">
+            ✓
+        </div>
+        <h2 class="success-title">Merci pour votre feedback !</h2>
+        <p class="success-description">
+            Votre évaluation a bien été enregistrée. ISGIS vous remercie de votre confiance et de votre contribution à l'amélioration continue de nos formations.
+        </p>
+    </div>
 </div>
 
 <style>
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>

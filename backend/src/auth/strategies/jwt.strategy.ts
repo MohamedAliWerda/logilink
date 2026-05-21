@@ -6,6 +6,7 @@ import { AppRole } from '../decorators/roles.decorator';
 
 export type JwtPayload = {
   sub: string;
+  id?: string;
   cin_passport?: string;
   email?: string;
   role: AppRole;

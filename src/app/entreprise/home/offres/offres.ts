@@ -46,6 +46,9 @@ export class Offres implements OnInit, OnDestroy {
   showEditModal = false;
   editingOffre: Offre | null = null;
 
+  showDeleteConfirm = false;
+  pendingDeleteOffre: Offre | null = null;
+
   offreForm: FormGroup;
 
   successMessage = '';
@@ -276,18 +279,26 @@ export class Offres implements OnInit, OnDestroy {
   }
 
   deleteOffre(offre: Offre): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) {
-      this.offresService.deleteOffre(offre.id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            // Success message handled by service
-          },
-          error: () => {
-            // Error message handled by service
-          },
-        });
-    }
+    this.pendingDeleteOffre = offre;
+    this.showDeleteConfirm = true;
+  }
+
+  confirmDelete(): void {
+    if (!this.pendingDeleteOffre) return;
+    const offre = this.pendingDeleteOffre;
+    this.showDeleteConfirm = false;
+    this.pendingDeleteOffre = null;
+    this.offresService.deleteOffre(offre.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {},
+        error: () => {},
+      });
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirm = false;
+    this.pendingDeleteOffre = null;
   }
 
   viewCandidatures(offre: Offre): void {

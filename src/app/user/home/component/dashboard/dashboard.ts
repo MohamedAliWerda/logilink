@@ -74,9 +74,9 @@ export class Dashboard {
     ];
     this.stats = [
       { label: 'Score ATS',             value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[0]) },
-      { label: "Score employabilité", value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[1]) },
-      { label: 'Métiers compatibles',    value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[2]) },
-      { label: 'Nbre de gaps',          value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[3]) },
+      { label: "Score d'employabilité", value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[1]) },
+      { label: 'Métier(s) compatible(s)',    value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[2]) },
+      { label: 'Nbre Gaps du métier visé',          value: 0, icon: this.sanitizer.bypassSecurityTrustHtml(icons[3]) },
     ];
 
     // compute initial score/stats

@@ -3,8 +3,8 @@
         <div class="matching-head">
             <div class="page-header global-panel-banner recommendation-header">
                 <div>
-                    <h1 class="page-title">Matching Métier & Gap Analysis</h1>
-                    <p class="page-sub">Analyse générée automatiquement à partir de vos hard skills et du référentiel compétences.</p>
+                    <h1 class="page-title">Matching Métier & Gaps Analysis</h1>
+                    <p class="page-sub">Analyse générée automatiquement à partir de vos compétences techniques et du référentiel de compétences de l’ISGIS.</p>
                 </div>
             </div>
         </div>
@@ -26,19 +26,37 @@
                 <div class="summary-value">{{ topMetierSummaryCoveragePct }}%</div>
             </article>
 
-            <article class="summary-card">
-                <span class="summary-label">Vos compétences analysées</span>
+            <article class="summary-card kpi-skills">
+                <span class="summary-label">Vos compétences CV</span>
                 <div class="summary-value">{{ a.summary.nSkills }}</div>
+                <span class="summary-sub">extraites depuis votre CV</span>
             </article>
 
-            <article class="summary-card">
-                <span class="summary-label">Matches</span>
-                <div class="summary-value">{{ a.summary.nMatches }}</div>
+            <article class="summary-card kpi-match">
+                <span class="summary-label">Couvertes du référentiel</span>
+                <div class="summary-value">
+                    {{ a.summary.nMatches }}<span class="summary-denom"> / {{ referentielSize }}</span>
+                </div>
+                <div class="kpi-bar-track">
+                    <div class="kpi-bar-fill kpi-bar-match" [style.width.%]="matchCoveragePct"></div>
+                </div>
+                <span class="summary-sub">{{ matchCoveragePct }}% du référentiel ISGIS</span>
             </article>
 
-            <article class="summary-card">
-                <span class="summary-label">Gaps</span>
-                <div class="summary-value">{{ a.summary.nGaps }}</div>
+            <article class="summary-card kpi-gap">
+                <span class="summary-label">GAPS</span>
+                <div class="summary-value">
+                    {{ a.summary.nGaps }}<span class="summary-denom"> / {{ referentielSize }}</span>
+                </div>
+                <div class="kpi-bar-track">
+                    <div class="kpi-bar-fill kpi-bar-gap" [style.width.%]="gapPct"></div>
+                </div>
+                <div class="kpi-gap-pills">
+                    @if (criticalGapsCount > 0) {
+                    <span class="gap-pill critical">{{ criticalGapsCount }} critiques</span> } @if (mediumGapsCount > 0) {
+                    <span class="gap-pill medium">{{ mediumGapsCount }} moyens</span> } @if (lowGapsCount > 0) {
+                    <span class="gap-pill low">{{ lowGapsCount }} faibles</span> }
+                </div>
             </article>
         </div>
 

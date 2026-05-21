@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +12,7 @@ import { getSupabase } from '../config/supabase.client';
 import { SignInDto } from './dto/signin.dto';
 import { SignInEntrepriseDto } from './dto/signin-entreprise.dto';
 import { ChallengeAccount, TwoFactorService } from './two-factor.service';
+import { MailService } from '../admin/mail.service';
 
 type UserRecord = {
   id: string;
@@ -51,11 +53,16 @@ function looksLikeBcryptHash(value: string): boolean {
   return /^\$2[aby]\$\d{2}\$/.test(value);
 }
 
+type ResetEntry = { code: string; expiresAt: number };
+
 @Injectable()
 export class AuthService {
+  private readonly resetCodes = new Map<string, ResetEntry>();
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly twoFactor: TwoFactorService,
+    private readonly mailService: MailService,
   ) {}
 
   async signIn(signInDto: SignInDto) {
@@ -228,6 +235,7 @@ export class AuthService {
 
     const payload = {
       sub: account.auth_id ?? String(account.id),
+      id: String(account.id),
       cin_passport: account.cin_passport,
       role: account.role,
     };
@@ -279,5 +287,66 @@ export class AuthService {
         entreprise: account.societe,
       },
     };
+  }
+
+  async forgotPasswordEntreprise(email: string) {
+    const supabase = getSupabase();
+    const normalized = email.trim().toLowerCase();
+
+    const { data: societe, error } = await supabase
+      .from('Societe')
+      .select('id, email, denomination_sociale')
+      .ilike('email', normalized)
+      .maybeSingle<{ id: number; email: string; denomination_sociale?: string }>();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!societe) throw new NotFoundException('Aucun compte trouvé avec cet email.');
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.resetCodes.set(normalized, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
+
+    const companyName = societe.denomination_sociale || normalized;
+    await this.mailService.sendResetCode(societe.email, companyName, code);
+
+    return { message: 'Un code de vérification a été envoyé à votre adresse email.' };
+  }
+
+  async verifyResetCodeEntreprise(email: string, code: string) {
+    const normalized = email.trim().toLowerCase();
+    const entry = this.resetCodes.get(normalized);
+
+    if (!entry) throw new BadRequestException('Aucune demande de réinitialisation en cours.');
+    if (Date.now() > entry.expiresAt) {
+      this.resetCodes.delete(normalized);
+      throw new BadRequestException('Le code a expiré. Veuillez recommencer.');
+    }
+    if (entry.code !== code.trim()) throw new UnauthorizedException('Code incorrect.');
+
+    return { message: 'Code valide.' };
+  }
+
+  async resetPasswordEntreprise(email: string, code: string, newPassword: string) {
+    const normalized = email.trim().toLowerCase();
+    const entry = this.resetCodes.get(normalized);
+
+    if (!entry) throw new BadRequestException('Aucune demande de réinitialisation en cours.');
+    if (Date.now() > entry.expiresAt) {
+      this.resetCodes.delete(normalized);
+      throw new BadRequestException('Le code a expiré. Veuillez recommencer.');
+    }
+    if (entry.code !== code.trim()) throw new UnauthorizedException('Code incorrect.');
+
+    const supabase = getSupabase();
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    const { error } = await supabase
+      .from('Societe')
+      .update({ mot_de_passe: hashed })
+      .ilike('email', normalized);
+
+    if (error) throw new InternalServerErrorException(error.message);
+
+    this.resetCodes.delete(normalized);
+    return { message: 'Mot de passe réinitialisé avec succès.' };
   }
 }

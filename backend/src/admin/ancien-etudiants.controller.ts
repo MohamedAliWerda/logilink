@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
+  Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -67,6 +70,25 @@ export class AncienEtudiantsController {
   @Post('feedback')
   async createFeedback(@Body() body: Record<string, unknown>) {
     return this.service.createFeedback(body);
+  }
+
+  @Delete('ancien-etudiants/:id')
+  async deleteAncienEtudiant(
+    @Param('id') id: string,
+    @Query('email') email?: string,
+  ) {
+    await this.service.deleteAncienEtudiant(id, email);
+    return { success: true };
+  }
+
+  @Post('ancien-etudiants/:id/send-invitation')
+  async sendSingleInvitation(
+    @Param('id') id: string,
+    @Body() body: { subject?: string; message?: string } = {},
+  ) {
+    const subject = (body.subject ?? '').trim() || 'Partagez votre expérience professionnelle - ISGI';
+    const message = (body.message ?? '').trim() || 'Nous aimerions connaître votre parcours professionnel.';
+    return this.service.sendSingleInvitation(id, subject, message);
   }
 
   @Post('ancien-etudiants/send-invitations')

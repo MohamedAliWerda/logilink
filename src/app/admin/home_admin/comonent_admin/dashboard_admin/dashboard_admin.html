@@ -44,7 +44,7 @@
             <h3 class="chart-title">Distribution des Scores</h3>
             <div class="score-controls">
                 <button type="button" class="score-filter-btn" [class.active]="activeScoreFilter === 'cvAts'" (click)="setScoreFilter('cvAts')">Score CV ATS</button>
-                <button type="button" class="score-filter-btn" [class.active]="activeScoreFilter === 'employability'" (click)="setScoreFilter('employability')">Score Employabilité</button>
+                <button type="button" class="score-filter-btn" [class.active]="activeScoreFilter === 'employability'" (click)="setScoreFilter('employability')">Score d'employabilité</button>
             </div>
 
             <!-- legend moved below SVG and styled like donut legend -->
@@ -92,7 +92,7 @@
 
         <!-- ── Répartition des sociétés validées par région ── -->
         <div class="chart-card domain-card">
-            <h3 class="chart-title">Répartition des sociétés validées par<br />région</h3>
+            <h3 class="chart-title">Répartition des sociétés validées<br /></h3>
             <div class="donut-container" style="flex: 1; justify-content: center; margin-top: 1.5rem;">
                 <svg viewBox="0 0 200 200" class="donut-svg" xmlns="http://www.w3.org/2000/svg">
           <circle *ngFor="let seg of domainPieSegments" cx="100" cy="100" r="50" fill="none" [attr.stroke]="seg.color"
@@ -127,7 +127,7 @@
                     <th>Étudiant</th>
                     <th>Spécialisation</th>
                     <th>Score CV ATS</th>
-                    <th>Score Employabilité</th>
+                    <th>Score d'employabilité</th>
                 </tr>
             </thead>
             <tbody>

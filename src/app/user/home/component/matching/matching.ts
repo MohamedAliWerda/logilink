@@ -41,6 +41,7 @@ export class Matching implements OnInit {
   targetMetierLabel = '';
   allGapsMetierFilter = '';
   private readonly matchStatusThreshold = 0.6;
+  readonly referentielSize = 158;
   private metierLookupLoaded = false;
   private readonly metierLabelById = new Map<string, string>();
 
@@ -534,6 +535,28 @@ export class Matching implements OnInit {
 
   get topMetierSummaryCoveragePct(): number {
     return this.metierCoveragePct(this.topMetierSummary);
+  }
+
+  get matchCoveragePct(): number {
+    const n = Number(this.analysis?.summary.nMatches ?? 0);
+    return Math.round((n / this.referentielSize) * 100);
+  }
+
+  get gapPct(): number {
+    const n = Number(this.analysis?.summary.nGaps ?? 0);
+    return Math.round((n / this.referentielSize) * 100);
+  }
+
+  get criticalGapsCount(): number {
+    return this.getGapRowsSource().filter(g => g.similarityScore < 0.3).length;
+  }
+
+  get mediumGapsCount(): number {
+    return this.getGapRowsSource().filter(g => g.similarityScore >= 0.3 && g.similarityScore < 0.5).length;
+  }
+
+  get lowGapsCount(): number {
+    return this.getGapRowsSource().filter(g => g.similarityScore >= 0.5).length;
   }
 
   get topMetierNSkills(): number {

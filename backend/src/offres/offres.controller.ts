@@ -28,6 +28,7 @@ type ApplyRequestBody = {
 
 type JwtUser = {
   sub?: string;
+  id?: string;
   role?: 'admin' | 'etudiant' | 'entreprise';
   cin_passport?: string | number;
   email?: string;
@@ -139,7 +140,7 @@ export class OffresController {
       return { success: false, error: 'studentId invalide', data: [] };
     }
     const user = getReqUser(req);
-    if (user?.role === 'etudiant' && String(user.sub) !== String(studentId) && String(user.cin_passport ?? '') !== String(studentId)) {
+    if (user?.role === 'etudiant' && String(user.sub) !== String(studentId) && String(user.cin_passport ?? '') !== String(studentId) && String(user.id ?? '') !== String(studentId)) {
       throw new ForbiddenException('Vous ne pouvez consulter que vos propres candidatures.');
     }
     try {
@@ -154,7 +155,7 @@ export class OffresController {
   @Roles('etudiant')
   async applyToOffres(@Req() req: any, @Body() data: ApplyRequestBody) {
     const user = getReqUser(req);
-    if (user?.role === 'etudiant' && String(user.sub) !== String(data.id_etudiant) && String(user.cin_passport ?? '') !== String(data.id_etudiant)) {
+    if (user?.role === 'etudiant' && String(user.sub) !== String(data.id_etudiant) && String(user.cin_passport ?? '') !== String(data.id_etudiant) && String(user.id ?? '') !== String(data.id_etudiant)) {
       throw new ForbiddenException('Vous ne pouvez postuler que pour vous-même.');
     }
     return await this.offresService.applyToOffres(data);
@@ -167,7 +168,7 @@ export class OffresController {
     @Body() data: { id_etudiant: number | string; id_post: number | string; id_societe?: number | string },
   ) {
     const user = getReqUser(req);
-    if (user?.role === 'etudiant' && String(user.sub) !== String(data.id_etudiant) && String(user.cin_passport ?? '') !== String(data.id_etudiant)) {
+    if (user?.role === 'etudiant' && String(user.sub) !== String(data.id_etudiant) && String(user.cin_passport ?? '') !== String(data.id_etudiant) && String(user.id ?? '') !== String(data.id_etudiant)) {
       throw new ForbiddenException('Vous ne pouvez gérer que vos propres sélections.');
     }
     return await this.offresService.saveSelection(data);
@@ -180,7 +181,7 @@ export class OffresController {
     @Body() data: { id_etudiant: number | string; id_post: number | string; id_societe?: number | string },
   ) {
     const user = getReqUser(req);
-    if (user?.role === 'etudiant' && String(user.sub) !== String(data.id_etudiant) && String(user.cin_passport ?? '') !== String(data.id_etudiant)) {
+    if (user?.role === 'etudiant' && String(user.sub) !== String(data.id_etudiant) && String(user.cin_passport ?? '') !== String(data.id_etudiant) && String(user.id ?? '') !== String(data.id_etudiant)) {
       throw new ForbiddenException('Vous ne pouvez gérer que vos propres sélections.');
     }
     return await this.offresService.removeSelection(data);

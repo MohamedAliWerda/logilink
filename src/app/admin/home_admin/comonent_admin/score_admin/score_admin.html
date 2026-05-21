@@ -2,8 +2,8 @@
 
     <!-- ══ HEADER ══════════════════════════════════════════════════ -->
     <header class="score-header">
-        <h1 id="score-title">Score Employabilité</h1>
-        <p>Analyse du potentiel des diplômés de l’ISGIS.</p>
+        <h1 id="score-title">Score d'employabilité</h1>
+        <p>Analyse du potentiel des diplômés de l'ISGIS.</p>
     </header>
 
     <div class="stats-grid">
@@ -26,16 +26,14 @@
             </div>
             <div class="general-info">
                 <div class="panel-header">
-                    <h2>Score Employabilité Global</h2>
+                    <h2>Score d'employabilité Global</h2>
                 </div>
                 <p class="general-desc">
-                    Le score global représente la moyenne des scores d'employabilité calculés pour l'ensemble des
-                    étudiants.
+                    Le score global représente la moyenne des scores d'employabilité calculés pour l'ensemble des étudiants.
                 </p>
                 <div class="score-scale">
                     <div class="scale-bar">
-                        <div class="scale-fill" [style.width.%]="barWidth"
-                            style="background: linear-gradient(90deg, #ffc46a, #e07800);"></div>
+                        <div class="scale-fill" [style.width.%]="barWidth" style="background: linear-gradient(90deg, #ffc46a, #e07800);"></div>
                     </div>
                     <div class="scale-labels">
                         <span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
@@ -48,7 +46,7 @@
         <article class="panel">
             <div class="panel-header">
                 <h2>Distribution des Scores</h2>
-                <span class="panel-sub">Score Employabilité / Nombre d'étudiants</span>
+                <span class="panel-sub">Score d'employabilité / Nombre d'étudiants</span>
             </div>
 
             <div class="dist-chart-wrap">
@@ -64,17 +62,14 @@
 
                     <div class="bars-row">
                         @for (d of distributionBins; track trackByDistribution($index, d); let i = $index) {
-                        <div class="dist-col"
-                            [title]="d.range + ' : ' + d.students + ' étudiants (' + d.percentage + '%)'">
-                            <span class="dist-count" [style.color]="getColor(i)"
-                                style="line-height: 1.1; margin-bottom: 4px;">
+                        <div class="dist-col" [title]="d.range + ' : ' + d.students + ' étudiants (' + d.percentage + '%)'">
+                            <span class="dist-count" [style.color]="getColor(i)" style="line-height: 1.1; margin-bottom: 4px;">
                                 {{ d.percentage }}%
                                 <br><small style="font-size: 0.8em; font-weight: normal; opacity: 0.8;">({{ d.students
                                     }})</small>
                             </span>
                             <div class="dist-bar-bg">
-                                <div class="dist-bar" [style.height.%]="distributionBarPct(d.students)"
-                                    [style.background]="getColor(i)"></div>
+                                <div class="dist-bar" [style.height.%]="distributionBarPct(d.students)" [style.background]="getColor(i)"></div>
                             </div>
                             <span class="dist-label">{{ d.range }}</span>
                         </div>
@@ -86,7 +81,7 @@
             </div>
 
             <div class="niveau-legend">
-                <span class="legend-swatch"></span>Score Employabilité / nombre d'étudiants
+                <span class="legend-swatch"></span>Score d'employabilité / nombre d'étudiants
             </div>
         </article>
     </div>
@@ -94,7 +89,7 @@
     <!-- ══ 3. SCORE PAR FILIÈRE ═════════════════════════════════════ -->
     <article class="panel">
         <div class="panel-header">
-            <h2>Score Employabilité par Filière</h2>
+            <h2>Score d'employabilité par Filière</h2>
             <span class="panel-sub">{{ filiereStats.length }} filières analysées</span>
         </div>
         <div class="filiere-list">
@@ -116,7 +111,7 @@
     <!-- ══ 4. DISTRIBUTION PAR NIVEAU ══════════════════════════════ -->
     <article class="panel niveau-panel">
         <div class="panel-header">
-            <h2>Score Employabilité par type de parcours</h2>
+            <h2>Score d'employabilité par type de parcours</h2>
             <span class="panel-sub">{{ niveauStats.length }} types de parcours · Distribution globale</span>
         </div>
 
@@ -142,8 +137,7 @@
                     <div class="dist-col" [title]="niveauFullLabels[n.niveau]">
                         <span class="dist-count" [style.color]="getColor(i)">{{ n.score }}%</span>
                         <div class="dist-bar-bg">
-                            <div class="dist-bar" [style.height.%]="niveauBarPct(n.score)"
-                                [style.background]="getColor(i)"></div>
+                            <div class="dist-bar" [style.height.%]="niveauBarPct(n.score)" [style.background]="getColor(i)"></div>
                         </div>
                         <span class="dist-label">{{ n.niveau }}</span>
                     </div>
@@ -157,7 +151,7 @@
 
         <!-- Legend -->
         <div class="niveau-legend">
-            <span class="legend-swatch"></span>Score Employabilité par type de parcours
+            <span class="legend-swatch"></span>Score d'employabilité par type de parcours
         </div>
     </article>
 

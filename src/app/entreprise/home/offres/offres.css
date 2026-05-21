@@ -637,6 +637,70 @@
     padding: 8px 30px 26px;
 }
 
+/* ── Confirm Delete Modal ─────────────────────── */
+.confirm-overlay {
+    z-index: 1100;
+}
+
+.confirm-modal {
+    width: 420px;
+    padding: 36px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+}
+
+.confirm-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fff1f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    margin-bottom: 16px;
+}
+
+.confirm-title {
+    margin: 0 0 10px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1a1a2e;
+}
+
+.confirm-message {
+    margin: 0 0 24px;
+    font-size: 0.9rem;
+    color: #5f6b80;
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    width: 100%;
+}
+
+.btn-danger-confirm {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    padding: 11px 28px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-danger-confirm:hover {
+    background: #b91c1c;
+}
+
 .btn-feedback {
     display: flex;
     align-items: center;

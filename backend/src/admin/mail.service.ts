@@ -278,6 +278,35 @@ export class MailService {
     });
   }
 
+  async sendResetCode(to: string, companyName: string, code: string): Promise<void> {
+    if (!this.transporter) throw new Error('SMTP transporter not configured');
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;">
+        <div style="background:#f97316;padding:24px 32px;border-radius:8px 8px 0 0;">
+          <h1 style="color:#fff;margin:0;font-size:20px;">LogiLink – Réinitialisation du mot de passe</h1>
+        </div>
+        <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+          <p>Bonjour <strong>${this.escapeHtml(companyName)}</strong>,</p>
+          <p>Vous avez demandé la réinitialisation de votre mot de passe sur <strong>LogiLink</strong>.</p>
+          <p>Voici votre code de vérification (valable <strong>10 minutes</strong>) :</p>
+          <div style="text-align:center;margin:28px 0;">
+            <span style="font-size:36px;font-weight:700;letter-spacing:10px;color:#f97316;">${this.escapeHtml(code)}</span>
+          </div>
+          <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+          <p style="margin-top:32px;font-size:13px;color:#6b7280;">— L'équipe LogiLink / ISGIS</p>
+        </div>
+      </div>`;
+
+    await this.transporter.sendMail({
+      from: `"${this.env.fromName}" <${this.env.user}>`,
+      to,
+      subject: 'LogiLink – Code de réinitialisation de mot de passe',
+      text: `Bonjour ${companyName},\n\nVotre code de réinitialisation : ${code}\n(valable 10 minutes)\n\n— L'équipe LogiLink / ISGIS`,
+      html,
+    });
+  }
+
   private escapeHtml(input: string): string {
     return String(input)
       .replace(/&/g, '&amp;')
