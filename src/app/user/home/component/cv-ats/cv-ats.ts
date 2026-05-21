@@ -355,6 +355,11 @@ export class CvAts {
 
   async ngOnInit(): Promise<void> {
     try {
+      const cinPassport = await this.cvSubmissionService.fetchStudentCinPassport();
+      if (cinPassport) {
+        this.studentId = cinPassport;
+      }
+
       const rawMetiers = await this.cvSubmissionService.fetchMetiers();
       this.metiers = (Array.isArray(rawMetiers) ? rawMetiers : [])
         .map((m: any) => ({
@@ -625,7 +630,7 @@ export class CvAts {
   ];
 
   consentGiven = false;
-  studentId = 'AUTO-ISGIS';
+  studentId = '';
   createdAt = new Date().toISOString();
   updatedAt = new Date().toISOString();
   atsScore = 0;

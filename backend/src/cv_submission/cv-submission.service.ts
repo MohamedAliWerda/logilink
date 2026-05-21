@@ -7,8 +7,6 @@ import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 
 type AtsScoreResult = {
-  matchScore: number;
-  successScore: number;
   atsScore: number;
   rawResponse: string;
   scoringSource: 'gemini' | 'fallback';
@@ -2628,17 +2626,13 @@ export class CvSubmissionService {
     try {
       const prompt = this.buildScorePrompt(resumeText, referenceKeywords);
       const gemini = await this.generateGeminiText(prompt);
-      const parsedMatch = this.parseScore(gemini.text, /Job Description Match[:\s]*([0-9]{1,3})\s*%/i);
-      const parsedSuccess = this.parseScore(gemini.text, /Application Success rates?[:\s]*([0-9]{1,3})\s*%/i);
       const parsedAts = this.parseScore(gemini.text, /ATS Score[:\s]*([0-9]{1,3})\s*%/i);
 
-      if (parsedMatch !== null && parsedSuccess !== null && parsedAts !== null) {
+      if (parsedAts !== null) {
         this.logger.log(
           `ATS score computed via Gemini provider=${gemini.providerName} model=${gemini.model}`,
         );
         return {
-          matchScore: this.clampScore(parsedMatch),
-          successScore: this.clampScore(parsedSuccess),
           atsScore: this.clampScore(parsedAts),
           rawResponse: gemini.text,
           scoringSource: 'gemini',
@@ -2734,7 +2728,7 @@ export class CvSubmissionService {
     resumeText: string,
     referenceKeywords: string[],
     qualityScore: number,
-  ): Pick<AtsScoreResult, 'matchScore' | 'successScore' | 'atsScore'> {
+  ): Pick<AtsScoreResult, 'atsScore'> {
     const resumeTokens = new Set(this.extractKeywords(resumeText));
     const matched = referenceKeywords.filter((k) => resumeTokens.has(k)).length;
     const rawMatch = this.clampScore(
@@ -2744,8 +2738,6 @@ export class CvSubmissionService {
     const successScore = this.clampScore(Math.round(qualityScore * 0.7 + matchScore * 0.3));
 
     return {
-      matchScore,
-      successScore,
       atsScore: this.clampScore(Math.round((matchScore + successScore) / 2)),
     };
   }
@@ -2930,7 +2922,7 @@ Rules:
 6. A word in the CV should count only if it is relevant to the professionalTitle or to the requested domain.
 7. If the CV contains meaningless or unrelated words such as "hhh", "tjb", or words with no clear relation to the professionalTitle, decrease the score.
 8. Penalize CVs that contain many unrelated, generic, or incomprehensible words, because this weakens the CV.
-9. Output only numeric percentages between 1 and 100.
+9. Output only the ATS score as a numeric percentage between 1 and 100.
 10. Do not add any explanation.
 
 Scoring guidance for student CVs:
@@ -2950,9 +2942,7 @@ Scoring guidance for student CVs:
 Resume: ${resumeText.slice(0, 14000)}
 Reference Keywords: ${referenceKeywords.join(', ')}
 
-Respond ONLY in this exact format with these exact section headers:
-• Job Description Match: [number 1-100]%
-• Application Success rates: [number 1-100]%
+Respond ONLY in this exact format with this exact section header:
 • ATS Score: [number 1-100]%
 `.trim();
   }

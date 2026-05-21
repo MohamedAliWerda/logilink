@@ -1,8 +1,8 @@
 """
 llm_pipeline
 ============
-Local LLM pipeline that reads certifications, builds prompts,
-queries a local model (Ollama), and saves structured results.
+LLM pipeline that reads certifications, builds prompts,
+queries a Gemini model by default, and saves structured results.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from urllib.parse import urljoin
 
 import requests
 
@@ -28,15 +27,25 @@ PROMPT_TEMPLATE_PATH: Path = PROJECT_ROOT / "prompt.txt"
 CERTIFICATIONS_PATH: Path = PROJECT_ROOT / "cetrif.json"
 OUTPUT_PATH: Path = PROJECT_ROOT / "output_llm.json"
 
-OLLAMA_BASE_URL: str = "http://localhost:11434"
-OLLAMA_GENERATE_ENDPOINT: str = urljoin(OLLAMA_BASE_URL, "/api/generate")
-OLLAMA_LIST_ENDPOINT: str = urljoin(OLLAMA_BASE_URL, "/api/tags")
+GEMINI_API_KEY: str = "AIzaSyA-HZfa7reYRNX-vGhc_6MoXJRHS_a2uNw"
+GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta"
+GEMINI_GENERATE_ENDPOINT: str = (
+    f"{GEMINI_BASE_URL}/models/{GEMINI_MODEL}:generateContent"
+)
 
-OLLAMA_MODEL_PRIORITY: List[str] = [
-    "qwen2.5:7b",
-    "qwen3:8b",
+LLM_PROVIDER: str = "gemini"
+
+# If you want to switch back to Ollama later, uncomment this block,
+# set LLM_PROVIDER = "ollama", and comment the Gemini block above.
+# OLLAMA_BASE_URL: str = "http://localhost:11434"
+# OLLAMA_GENERATE_ENDPOINT: str = f"{OLLAMA_BASE_URL}/api/generate"
+# OLLAMA_LIST_ENDPOINT: str = f"{OLLAMA_BASE_URL}/api/tags"
+# OLLAMA_MODEL_PRIORITY: List[str] = [
     
-]
+#     "qwen2.5:7b-instruct-q4_K_M ",
+#     "qwen3:8b",
+# ]
 
 REQUEST_TIMEOUT: int = 600
 MAX_RETRIES: int = 2
@@ -190,40 +199,57 @@ class PromptBuilder:
 
 
 class LocalLLMClient:
-    """Abstracted client for local LLM inference via Ollama."""
+    """Abstracted client for LLM inference via Gemini or Ollama."""
 
     def __init__(
         self,
-        base_url: str = OLLAMA_BASE_URL,
+        provider: str = LLM_PROVIDER,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         model: Optional[str] = None,
         timeout: int = REQUEST_TIMEOUT,
         max_retries: int = MAX_RETRIES,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.provider = provider.strip().lower()
+        self.api_key = api_key or GEMINI_API_KEY
+        self.base_url = (base_url or GEMINI_BASE_URL).rstrip("/")
         self._session = requests.Session()
         self.timeout = timeout
         self.max_retries = max_retries
 
-        self.model: str = model if model else self._resolve_model()
+        if self.provider == "ollama":
+            self.base_url = (base_url or "http://localhost:11434").rstrip("/")
+            self.model = model if model else self._resolve_model()
+        else:
+            self.model = model if model else GEMINI_MODEL
 
-        logger.info("LLM client initialized — model=%s endpoint=%s", self.model, self.base_url)
+        logger.info(
+            "LLM client initialized — provider=%s model=%s endpoint=%s",
+            self.provider,
+            self.model,
+            self.base_url,
+        )
 
     # ---------------------------------------------------------------
     # Model resolution
     # ---------------------------------------------------------------
 
     def _resolve_model(self) -> str:
+        if self.provider != "ollama":
+            return self.model if hasattr(self, "model") else GEMINI_MODEL
+
+        priority_models = globals().get("OLLAMA_MODEL_PRIORITY", [])
         available = self._fetch_available_models()
-        for idx, preferred in enumerate(OLLAMA_MODEL_PRIORITY):
+        for idx, preferred in enumerate(priority_models):
             if preferred in available:
                 logger.info("Selected model: %s", preferred)
                 return preferred
 
-            if idx + 1 < len(OLLAMA_MODEL_PRIORITY):
+            if idx + 1 < len(priority_models):
                 logger.warning(
                     "%s unavailable — fallback to %s",
                     preferred,
-                    OLLAMA_MODEL_PRIORITY[idx + 1],
+                    priority_models[idx + 1],
                 )
             else:
                 logger.warning("%s unavailable — no preferred fallback left", preferred)
@@ -236,8 +262,11 @@ class LocalLLMClient:
         )
 
     def _fetch_available_models(self) -> List[str]:
+        if self.provider != "ollama":
+            return []
+
         try:
-            resp = self._session.get(OLLAMA_LIST_ENDPOINT, timeout=10)
+            resp = self._session.get(f"{self.base_url}/api/tags", timeout=10)
             resp.raise_for_status()
             data = resp.json()
             models = data.get("models", [])
@@ -272,24 +301,63 @@ class LocalLLMClient:
         )
 
     def _generate_once(self, prompt: str) -> str:
-        payload: Dict[str, Any] = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
+        if self.provider == "ollama":
+            payload: Dict[str, Any] = {
+                "model": self.model,
+                "prompt": prompt,
+                "stream": False,
+            }
+
+            resp = self._session.post(
+                f"{self.base_url}/api/generate",
+                json=payload,
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+
+            data = resp.json()
+            raw_response = data.get("response", "")
+
+            if not raw_response:
+                raise LLMResponseError("LLM returned an empty response.")
+
+            return raw_response
+
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}],
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "topP": 0.95,
+                "maxOutputTokens": 4096,
+            },
         }
 
         resp = self._session.post(
-            OLLAMA_GENERATE_ENDPOINT,
+            GEMINI_GENERATE_ENDPOINT,
+            params={"key": self.api_key},
             json=payload,
             timeout=self.timeout,
         )
         resp.raise_for_status()
 
         data = resp.json()
-        raw_response = data.get("response", "")
+        candidates = data.get("candidates", [])
+        if not candidates:
+            raise LLMResponseError("Gemini returned no candidates.")
+
+        content = candidates[0].get("content", {})
+        parts = content.get("parts", [])
+        raw_response = "".join(
+            part.get("text", "") for part in parts if isinstance(part, dict)
+        ).strip()
 
         if not raw_response:
-            raise LLMResponseError("LLM returned an empty response.")
+            raise LLMResponseError("Gemini returned an empty response.")
 
         return raw_response
 
@@ -489,3 +557,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

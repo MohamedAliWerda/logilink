@@ -247,6 +247,49 @@ export class CvSubmissionService {
     }
   }
 
+  private getStoredStudentCinPassport(): string | null {
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (!rawUser) return null;
+
+      const user = JSON.parse(rawUser) as Record<string, any>;
+      const candidate = user?.['cin_passport'] ?? user?.['cinPassport'];
+      if (candidate === undefined || candidate === null) return null;
+
+      const cin = String(candidate).trim();
+      return cin.length > 0 ? cin : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async fetchStudentCinPassport(): Promise<string | null> {
+    const fallbackCin = this.getStoredStudentCinPassport();
+    if (!fallbackCin) return null;
+
+    try {
+      const { data, error } = await this.supabase
+        .from('profils_etudiant')
+        .select('cin_passport')
+        .eq('cin_passport', fallbackCin)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[CvSubmissionService] fetchStudentCinPassport error', error);
+        return fallbackCin;
+      }
+
+      const cinPassport = data?.['cin_passport'];
+      if (cinPassport === undefined || cinPassport === null) return fallbackCin;
+
+      const resolved = String(cinPassport).trim();
+      return resolved.length > 0 ? resolved : fallbackCin;
+    } catch (err) {
+      console.warn('[CvSubmissionService] fetchStudentCinPassport failed', err);
+      return fallbackCin;
+    }
+  }
+
   async upsertCv(payload: CvPayload): Promise<void> {
     try {
       // try server-side endpoint first
