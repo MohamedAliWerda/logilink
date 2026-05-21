@@ -27,7 +27,7 @@ PROMPT_TEMPLATE_PATH: Path = PROJECT_ROOT / "prompt.txt"
 CERTIFICATIONS_PATH: Path = PROJECT_ROOT / "cetrif.json"
 OUTPUT_PATH: Path = PROJECT_ROOT / "output_llm.json"
 
-GEMINI_API_KEY: str = "AIzaSyA-HZfa7reYRNX-vGhc_6MoXJRHS_a2uNw"
+GEMINI_API_KEY: str = "AIzaSyBZ-CNa-wtB7UTfa_Pd_GXREVxx-3LH33U"
 GEMINI_MODEL: str = "gemini-2.5-flash-lite"
 GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta"
 GEMINI_GENERATE_ENDPOINT: str = (
@@ -43,7 +43,7 @@ LLM_PROVIDER: str = "gemini"
 # OLLAMA_LIST_ENDPOINT: str = f"{OLLAMA_BASE_URL}/api/tags"
 # OLLAMA_MODEL_PRIORITY: List[str] = [
     
-#     "qwen2.5:7b-instruct-q4_K_M ",
+#     "qwen2.5:7b",
 #     "qwen3:8b",
 # ]
 
