@@ -30,4 +30,9 @@ export class DashboardController {
   async getStats() {
     return this.stats.getAggregateStats();
   }
+
+  @Get('feedback-societe')
+  async getFeedbackSocieteRows() {
+    return this.dashboardService.getFeedbackSocieteRows();
+  }
 }

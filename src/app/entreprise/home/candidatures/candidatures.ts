@@ -185,19 +185,34 @@ export class Candidatures implements OnInit, OnDestroy {
     return this.filteredCandidatures.length;
   }
 
-  get avgScore(): number {
-    if (!this.filteredCandidatures.length) return 0;
-    return this.filteredCandidatures.reduce((s, c) => s + c.score, 0) / this.filteredCandidatures.length;
+  // A student who applied to several posts must count once for stats —
+  // their employability score is per-student, not per-application.
+  private get uniqueCandidates(): CandidatureItem[] {
+    const seen = new Set<number>();
+    const list: CandidatureItem[] = [];
+    for (const c of this.filteredCandidatures) {
+      if (seen.has(c.idEtudiant)) continue;
+      seen.add(c.idEtudiant);
+      list.push(c);
+    }
+    return list;
   }
 
-  // ✅ top = score >= 90
+  get avgScore(): number {
+    const unique = this.uniqueCandidates;
+    if (!unique.length) return 0;
+    return unique.reduce((s, c) => s + c.score, 0) / unique.length;
+  }
+
+  // ✅ top = score >= 90 (counted on distinct students)
   get topCandidats(): number {
-    return this.filteredCandidatures.filter(c => c.score >= 90).length;
+    return this.uniqueCandidates.filter(c => c.score >= 90).length;
   }
 
   get percentTop(): number {
-    if (!this.totalCandidats) return 0;
-    return Math.round((this.topCandidats / this.totalCandidats) * 100);
+    const total = this.uniqueCandidates.length;
+    if (!total) return 0;
+    return Math.round((this.topCandidats / total) * 100);
   }
 
   getInitials(p: string, n: string): string {

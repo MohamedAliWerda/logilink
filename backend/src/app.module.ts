@@ -20,7 +20,7 @@ import { EntrepriseModule } from './entreprise/entreprise.module';
       {
         name: 'short',
         ttl: 60_000,
-        limit: 60,
+        limit: 200,
       },
       {
         name: 'long',

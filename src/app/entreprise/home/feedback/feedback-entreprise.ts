@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import { SupabaseService } from '../../../services/supabase.service';
+import { environment } from '../../../../environments/environment';
 
 type StepType = 'radio' | 'checkbox' | 'stars' | 'satisfaction';
 
@@ -49,7 +52,7 @@ type ScreenState = 'loading' | 'locked' | 'submitted' | 'select' | 'pre-question
   templateUrl: './feedback-entreprise.html',
   styleUrl: './feedback-entreprise.css',
 })
-export class FeedbackEntreprise implements OnInit {
+export class FeedbackEntreprise implements OnInit, OnDestroy {
   readonly totalSteps = 7;
   readonly storageKey = 'enterprise-feedback-draft';
   readonly offlineKey = 'enterprise-feedback-offline';
@@ -128,6 +131,8 @@ export class FeedbackEntreprise implements OnInit {
     private readonly supabaseService: SupabaseService,
     private readonly cdr: ChangeDetectorRef,
     private readonly route: ActivatedRoute,
+    private readonly http: HttpClient,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -153,52 +158,46 @@ export class FeedbackEntreprise implements OnInit {
       return;
     }
 
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    console.log('[Feedback] societeId=', societeId, '| threshold=', sixMonthsAgo.toISOString());
+    console.log('[Feedback] societeId=', societeId);
 
     try {
-      // Posts that are >= 6 months old AND feedback not yet submitted
-      const { data: postData, error: postError } = await this.supabaseService.adminClient
-        .from('post')
-        .select('*')
-        .eq('id', societeId)
-        .lte('date_creation', sixMonthsAgo.toISOString())
-        .neq('feedback_submitted', true);
+      // Call the backend with the JWT — service role on the server bypasses
+      // RLS on `post`, which the anon client used in the frontend cannot read.
+      const apiUrl = `${environment.apiUrl}/offres/company/${societeId}/feedback-eligible`;
+      const response: any = await firstValueFrom(this.http.get<any>(apiUrl));
+      console.log('[Feedback] backend response:', response);
 
-      console.log('[Feedback] posts query:', { postData, postError });
-      if (postError) throw postError;
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.data)
+          ? response.data.data
+          : Array.isArray(response)
+            ? response
+            : [];
 
-      const offres: EligibleOffre[] = (postData || []).map((row: Record<string, unknown>) => ({
-        id: String(row['id_line'] ?? ''),
-        titre: String(
-          row['titre_poste'] ??
-          row['Titre du poste'] ??
-          row['titre'] ??
-          'Offre sans titre'
-        ),
-        date_creation: String(row['date_creation'] ?? ''),
-      })).filter((o: EligibleOffre) => o.id);
+      // The backend is authoritative: it joins feedback_societe.id_post
+      // server-side. If the row was deleted, `submitted` is false and the
+      // form must reopen — do NOT layer localStorage on top here.
+      this.clearStaleLocalSubmissions(rows);
+
+      const allEligible = rows.map((row: Record<string, unknown>) => {
+        const idLine = String(row['id_line'] ?? row['id'] ?? '');
+        return {
+          id: idLine,
+          titre: String(row['titre_poste'] ?? 'Offre sans titre'),
+          date_creation: String(row['date_creation'] ?? ''),
+          submitted: row['submitted'] === true,
+        };
+      }).filter((o: { id: string }) => o.id);
+
+      const offres: EligibleOffre[] = allEligible
+        .filter((o: { submitted: boolean }) => !o.submitted)
+        .map(({ submitted, ...rest }: { submitted: boolean; id: string; titre: string; date_creation: string }) => rest);
 
       console.log('[Feedback] pending offres:', offres);
 
       if (offres.length === 0) {
-        // Either no posts >= 6 months, or all of them already have feedback submitted
-        // Check which case it is to show the right screen
-        const { data: anyPost } = await this.supabaseService.adminClient
-          .from('post')
-          .select('id_line')
-          .eq('id', societeId)
-          .lte('date_creation', sixMonthsAgo.toISOString())
-          .limit(1);
-
-        if (anyPost && anyPost.length > 0) {
-          // Posts exist but all submitted
-          this.screenState = 'submitted';
-        } else {
-          // No posts are 6 months old yet
-          this.screenState = 'locked';
-        }
+        this.screenState = 'locked';
         this.cdr.detectChanges();
         return;
       }
@@ -236,8 +235,37 @@ export class FeedbackEntreprise implements OnInit {
     this.screenState = 'form';
   }
 
-  declinedStudent(): void {
+  async declinedStudent(): Promise<void> {
+    const declinedId = this.selectedOffre?.id;
+    if (declinedId) {
+      this.eligibleOffres = this.eligibleOffres.filter((o) => o.id !== declinedId);
+    }
     this.screenState = 'declined';
+    this.cdr.detectChanges();
+
+    let societeId: number | null = null;
+    try {
+      const raw = localStorage.getItem('entreprise');
+      if (raw) {
+        const societe = JSON.parse(raw) as Record<string, unknown>;
+        const parsed = Number(societe['id']);
+        societeId = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+      }
+    } catch { /* ignore */ }
+
+    const postIdNum = Number(this.selectedOffre?.id);
+    if (!societeId || !Number.isFinite(postIdNum) || postIdNum <= 0) {
+      this.scheduleSuccessRedirect();
+      return;
+    }
+
+    try {
+      const apiUrl = `${environment.apiUrl}/offres/company/${societeId}/feedback/decline`;
+      await firstValueFrom(this.http.post<any>(apiUrl, { id_post: postIdNum }));
+    } catch (err) {
+      console.warn('[Feedback] could not persist decline:', err);
+    }
+    this.scheduleSuccessRedirect();
   }
 
   get progressPercent(): number {
@@ -358,31 +386,84 @@ export class FeedbackEntreprise implements OnInit {
     this.isSubmitting = true;
     this.submitError = '';
 
+    const societeId = Number((payload as Record<string, unknown>)['id_soc']);
+    if (!Number.isFinite(societeId) || societeId <= 0) {
+      this.submitError = 'Compte société introuvable. Veuillez vous reconnecter.';
+      this.isSubmitting = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
     try {
-      const { error } = await this.supabaseService.adminClient
-        .from('feedback_societe')
-        .insert([payload]);
+      // Send via the backend so the service-role key bypasses RLS on
+      // feedback_societe (the anon client used in the frontend is denied).
+      const apiUrl = `${environment.apiUrl}/offres/company/${societeId}/feedback`;
+      const response: any = await firstValueFrom(this.http.post<any>(apiUrl, payload));
+      const ok = response?.success === true
+        || response?.data?.success === true
+        || (response?.data && response?.data?.success !== false);
+      if (!ok) {
+        throw new Error(response?.error ?? response?.data?.error ?? 'Échec de la soumission');
+      }
 
-      if (error) throw error;
-
-      // Mark post as feedback_submitted so the form locks on next visit
       if (this.selectedOffre?.id) {
-        await this.supabaseService.adminClient
-          .from('post')
-          .update({ feedback_submitted: true })
-          .eq('id_line', Number(this.selectedOffre.id));
+        this.markSubmittedLocally(this.selectedOffre.id);
+        this.eligibleOffres = this.eligibleOffres.filter((o) => o.id !== this.selectedOffre?.id);
       }
 
       this.submitSuccess = true;
       localStorage.removeItem(this.storageKey);
+      this.scheduleSuccessRedirect();
     } catch (err) {
       console.error('Feedback submit error:', err);
       this.persistOffline(payload);
       this.submitSuccess = true; // still show success (saved offline)
+      this.scheduleSuccessRedirect();
     } finally {
       this.isSubmitting = false;
       this.cdr.detectChanges();
     }
+  }
+
+  get hasMoreFeedbacks(): boolean {
+    return this.eligibleOffres.length > 0;
+  }
+
+  continueAfterSuccess(): void {
+    this.cancelSuccessRedirect();
+    if (this.hasMoreFeedbacks) {
+      const next = this.eligibleOffres[0];
+      this.selectedOffre = next;
+      this.submitSuccess = false;
+      this.submitError = '';
+      this.currentStep = 0;
+      this.form = this.createEmptyForm();
+      this.screenState = 'pre-question';
+      this.cdr.detectChanges();
+      return;
+    }
+    this.router.navigate(['/entreprise/offres']);
+  }
+
+  ngOnDestroy(): void {
+    this.cancelSuccessRedirect();
+  }
+
+  private successRedirectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private cancelSuccessRedirect(): void {
+    if (this.successRedirectTimer !== null) {
+      clearTimeout(this.successRedirectTimer);
+      this.successRedirectTimer = null;
+    }
+  }
+
+  private scheduleSuccessRedirect(): void {
+    this.cancelSuccessRedirect();
+    this.successRedirectTimer = setTimeout(() => {
+      this.successRedirectTimer = null;
+      this.router.navigate(['/entreprise/offres']);
+    }, 10000);
   }
 
   private validateCurrentStep(): boolean {
@@ -441,11 +522,13 @@ export class FeedbackEntreprise implements OnInit {
       lacunes.push(this.form.otherGap.trim());
     }
 
+    const postIdNum = Number(this.selectedOffre?.id);
+
     return {
       id_soc: societeId,
-      id_post: this.selectedOffre?.id ?? null,
+      id_post: Number.isFinite(postIdNum) && postIdNum > 0 ? postIdNum : null,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      "1. Quelle est la situation actuelle du diplômé dans votre Société": this.form.q1,
+      "1. Quelle est la situation actuelle du diplômé dans votre ent": this.form.q1,
       "2. [Compétences techniques métier]": this.form.ratings.tech,
       "2. [Résolution de problèmes]": this.form.ratings.prob,
       "2. [Travail en équipe / Collaboration]": this.form.ratings.team,
@@ -468,6 +551,62 @@ export class FeedbackEntreprise implements OnInit {
       this.companyName = (societe['denomination_sociale'] ?? societe['nom'] ?? 'Entreprise partenaire') as string;
       this.companySector = (societe['secteur_activite'] ?? 'Entreprise') as string;
     } catch { /* keep defaults */ }
+  }
+
+  private readonly submittedKey = 'enterprise-feedback-submitted';
+
+  private async loadSubmittedPostIds(societeId: number): Promise<Set<string>> {
+    try {
+      const { data, error } = await this.supabaseService.adminClient
+        .from('feedback_societe')
+        .select('id_post')
+        .eq('id_soc', societeId);
+      if (error) {
+        console.warn('[Feedback] could not read feedback_societe (id_post column may be missing):', error.message);
+        return new Set();
+      }
+      return new Set(
+        (data || [])
+          .map((row: Record<string, unknown>) => row['id_post'])
+          .filter((value): value is number | string => value !== null && value !== undefined)
+          .map((value) => String(value)),
+      );
+    } catch (err) {
+      console.warn('[Feedback] feedback_societe lookup failed:', err);
+      return new Set();
+    }
+  }
+
+  private getSubmittedPostIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(this.submittedKey);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw) as unknown;
+      return Array.isArray(arr) ? new Set(arr.map(String)) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  private clearStaleLocalSubmissions(rows: Array<Record<string, unknown>>): void {
+    try {
+      const stillSubmittedOnServer = new Set(
+        rows
+          .filter((row) => row['submitted'] === true)
+          .map((row) => String(row['id_line'] ?? row['id'] ?? '')),
+      );
+      const local = this.getSubmittedPostIds();
+      const pruned = [...local].filter((id) => stillSubmittedOnServer.has(id));
+      localStorage.setItem(this.submittedKey, JSON.stringify(pruned));
+    } catch { /* ignore */ }
+  }
+
+  private markSubmittedLocally(postId: string): void {
+    try {
+      const ids = this.getSubmittedPostIds();
+      ids.add(String(postId));
+      localStorage.setItem(this.submittedKey, JSON.stringify([...ids]));
+    } catch { /* ignore */ }
   }
 
   private persistDraft(): void {

@@ -8,7 +8,7 @@ import {
   STUDENT_PROFILE_DATA,
 } from '../../student-profile.data';
 
-type Level = 'Debutant' | 'Notions' | 'Intermediaire' | 'Avance' | 'Expert';
+type Level = 'Débutant' | 'Notions' | 'Intermediaire' | 'Avancé' | 'Expert';
 
 interface AtsResult {
   matchScore: number;
@@ -636,7 +636,7 @@ export class CvAts {
   atsScore = 0;
   cohortRank = 0;
 
-  niveaux: Level[] = ['Debutant', 'Notions', 'Intermediaire', 'Avance', 'Expert'];
+  niveaux: Level[] = ['Débutant', 'Notions', 'Intermediaire', 'Avancé', 'Expert'];
   niveauxLangue = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   secteurOptions = ['Transport routier', 'Transport maritime', 'Transport aerien', 'Logistique 3PL/4PL', 'Supply Chain', 'Douane'];
   engagementTypes = ['Associatif', 'Sport', 'Bénévolat', 'Club'];
@@ -1203,10 +1203,10 @@ export class CvAts {
 
   skillWidth(level: Level): string {
     const widths: Record<Level, string> = {
-      Debutant: '20%',
+      Débutant: '20%',
       Notions: '40%',
       Intermediaire: '60%',
-      Avance: '80%',
+      Avancé: '80%',
       Expert: '100%'
     };
     return widths[level];
@@ -1214,10 +1214,10 @@ export class CvAts {
 
   skillColor(level: Level): string {
     const colors: Record<Level, string> = {
-      Debutant: '#94a3b8',
+      Débutant: '#94a3b8',
       Notions: '#60a5fa',
       Intermediaire: '#22c55e',
-      Avance: '#f59e0b',
+      Avancé: '#f59e0b',
       Expert: '#ef4444'
     };
     return colors[level];

@@ -177,6 +177,7 @@ export class OffresService {
           societe: row['Sociéte'] ?? row['Société'] ?? row['Societe'] ?? row['societe'] ?? '',
           exigences: row.Exigences ?? row.exigences ?? '',
           date_creation: row.date_creation ?? new Date().toISOString(),
+          feedback_email_sent_at: row.feedback_email_sent_at ?? null,
           candidaturesCount: candidaturesByPost.get(Number(row?.id_line ?? row?.id_post ?? 0)) ?? 0,
           status: 'active',
         })),
@@ -191,6 +192,196 @@ export class OffresService {
         },
       };
     }
+  }
+
+  async declineFeedback(societeId: string, postId: number | string | undefined) {
+    try {
+      const parsedSocieteId = Number(societeId);
+      if (!Number.isInteger(parsedSocieteId) || parsedSocieteId <= 0) {
+        throw new Error('societeId invalide');
+      }
+      const parsedPostId = Number(postId);
+      if (!Number.isInteger(parsedPostId) || parsedPostId <= 0) {
+        throw new Error('id_post invalide');
+      }
+
+      const { error } = await this.supabase
+        .from('feedback_declined')
+        .upsert(
+          [{ id_soc: parsedSocieteId, id_post: parsedPostId }],
+          { onConflict: 'id_soc,id_post' },
+        );
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      return { success: true, message: 'Réponse enregistrée' };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de l enregistrement',
+      };
+    }
+  }
+
+  async submitFeedback(societeId: string, payload: Record<string, unknown>) {
+    try {
+      const parsedSocieteId = Number(societeId);
+      if (!Number.isInteger(parsedSocieteId) || parsedSocieteId <= 0) {
+        throw new Error('societeId invalide');
+      }
+
+      const body: Record<string, unknown> = { ...payload, id_soc: parsedSocieteId };
+
+      const tryInsert = async (row: Record<string, unknown>) => {
+        return await this.supabase.from('feedback_societe').insert([row]);
+      };
+
+      let { error } = await tryInsert(body);
+
+      // If id_post column doesn't exist yet on this deployment, drop it and retry.
+      if (error && /id_post/i.test(error.message) && /does not exist|schema cache/i.test(error.message)) {
+        const { id_post: _drop, ...rest } = body;
+        ({ error } = await tryInsert(rest));
+      }
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      const postIdNum = Number(body['id_post']);
+      if (Number.isInteger(postIdNum) && postIdNum > 0) {
+        try {
+          await this.supabase
+            .from('post')
+            .update({ feedback_submitted: true })
+            .eq('id_line', postIdNum);
+        } catch {
+          // feedback_submitted column might be missing — ignore.
+        }
+      }
+
+      return { success: true, message: 'Feedback enregistré avec succès' };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la soumission du feedback',
+      };
+    }
+  }
+
+  async getFeedbackEligiblePosts(societeId: string) {
+    try {
+      const parsedSocieteId = Number(societeId);
+      if (!Number.isInteger(parsedSocieteId) || parsedSocieteId <= 0) {
+        throw new Error('societeId invalide');
+      }
+
+      const sixMonthsAgoIso = (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 6);
+        return d.toISOString();
+      })();
+
+      const { data: posts, error: postsError } = await this.supabase
+        .from('post')
+        .select('*')
+        .eq('id', parsedSocieteId)
+        .eq('is_archived', false)
+        .or(`date_creation.lte.${sixMonthsAgoIso},feedback_email_sent_at.not.is.null`)
+        .order('id_line', { ascending: false });
+
+      if (postsError) {
+        throw new Error(`Supabase error (post): ${postsError.message}`);
+      }
+
+      const eligiblePostIds = (posts || [])
+        .map((row: any) => Number(row?.id_line ?? 0))
+        .filter((id: number) => Number.isInteger(id) && id > 0);
+
+      let submittedIds = new Set<number>();
+      if (eligiblePostIds.length > 0) {
+        const { data: feedbackRows, error: feedbackError } = await this.supabase
+          .from('feedback_societe')
+          .select('id_post')
+          .eq('id_soc', parsedSocieteId)
+          .in('id_post', eligiblePostIds);
+
+        if (feedbackError) {
+          // id_post column might not exist yet — treat as "no submissions" so the
+          // form opens; localStorage on the client serves as a fallback.
+          // eslint-disable-next-line no-console
+          console.warn('[OffresService] feedback_societe lookup skipped:', feedbackError.message);
+        } else {
+          submittedIds = new Set(
+            (feedbackRows || [])
+              .map((row: any) => Number(row?.id_post))
+              .filter((id: number) => Number.isInteger(id) && id > 0),
+          );
+        }
+
+        // A post is also "done" when the société declined to give feedback
+        // (answered "Non, pas cette fois"). We keep that in a separate table
+        // so feedback_societe isn't polluted with empty rows.
+        const { data: declinedRows, error: declinedError } = await this.supabase
+          .from('feedback_declined')
+          .select('id_post')
+          .eq('id_soc', parsedSocieteId)
+          .in('id_post', eligiblePostIds);
+
+        if (declinedError) {
+          // eslint-disable-next-line no-console
+          console.warn('[OffresService] feedback_declined lookup skipped:', declinedError.message);
+        } else {
+          for (const row of declinedRows || []) {
+            const id = Number((row as any)?.id_post);
+            if (Number.isInteger(id) && id > 0) submittedIds.add(id);
+          }
+        }
+      }
+
+      const data = (posts || []).map((row: any) => {
+        const idLine = Number(row?.id_line ?? 0);
+        return {
+          id: String(idLine),
+          id_line: idLine,
+          titre_poste: row?.['Titre du poste'] ?? row?.['titre_poste'] ?? 'Offre sans titre',
+          date_creation: row?.date_creation ?? null,
+          feedback_email_sent_at: row?.feedback_email_sent_at ?? null,
+          submitted: submittedIds.has(idLine),
+        };
+      });
+
+      return {
+        message: 'Offres éligibles au feedback récupérées',
+        data,
+      };
+    } catch (error) {
+      return {
+        message: 'Erreur lors de la récupération des offres éligibles',
+        data: {
+          success: false,
+          error: error instanceof Error ? error.message : 'Erreur lors de la récupération',
+          data: [],
+        },
+      };
+    }
+  }
+
+  async adminUnlockFeedback(postId: string) {
+    const idLine = Number(postId);
+    if (!Number.isInteger(idLine) || idLine <= 0) {
+      return { success: false, error: 'postId invalide' };
+    }
+    const { error } = await this.supabase
+      .from('post')
+      .update({ feedback_email_sent_at: new Date().toISOString() })
+      .eq('id_line', idLine);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, message: `feedback_email_sent_at set for post id_line=${idLine}` };
   }
 
   async updateOffre(id: string, data: Partial<any>) {

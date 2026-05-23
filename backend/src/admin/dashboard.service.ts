@@ -83,6 +83,49 @@ export class DashboardService {
     return items.slice(0, 6);
   }
 
+  async getFeedbackSocieteRows(): Promise<Record<string, unknown>[]> {
+    const { data, error } = await this.supabase
+      .from('feedback_societe')
+      .select('*');
+    if (error) {
+      this.logger.error('feedback_societe fetch failed: ' + error.message);
+      return [];
+    }
+    const rows = Array.isArray(data) ? data : [];
+    if (rows.length === 0) return [];
+
+    // Join with Societe to enrich each row with company name + sector. We
+    // do this server-side because the Societe table has RLS.
+    const societeIds = [...new Set(
+      rows
+        .map((r: any) => Number(r?.id_soc))
+        .filter((id: number) => Number.isInteger(id) && id > 0),
+    )];
+
+    if (societeIds.length === 0) return rows;
+
+    const { data: societeRows } = await this.supabase
+      .from('Societe')
+      .select('id, denomination_sociale, secteur_activite')
+      .in('id', societeIds);
+
+    const societeById = new Map<number, { denomination_sociale?: string; secteur_activite?: string }>();
+    for (const row of (societeRows ?? []) as any[]) {
+      const id = Number(row?.id);
+      if (Number.isInteger(id)) {
+        societeById.set(id, {
+          denomination_sociale: row?.denomination_sociale,
+          secteur_activite: row?.secteur_activite,
+        });
+      }
+    }
+
+    return rows.map((row: any) => ({
+      ...row,
+      Societe: societeById.get(Number(row?.id_soc)) ?? null,
+    }));
+  }
+
   async getRecentStudents(limit = 5): Promise<DashboardStudent[]> {
     // Fetch students ordered by employability score (score_final) descending
     const { data: scoreRows, error: scoreError } = await this.supabase

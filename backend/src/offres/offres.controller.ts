@@ -4,16 +4,20 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Headers,
   Param,
   Post,
   Put,
   Query,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { OffresService } from './offres.service';
 import { OffresScheduler } from './offres.scheduler';
 import { getSupabase } from '../config/supabase.client';
@@ -69,6 +73,7 @@ async function assertEntrepriseOwnership(req: any, societeId: string | number): 
   );
 }
 
+@SkipThrottle()
 @Controller('offres')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OffresController {
@@ -77,11 +82,34 @@ export class OffresController {
     private offresScheduler: OffresScheduler,
   ) {}
 
+  @Public()
   @Get('admin/trigger-feedback-reminders')
-  @Roles('admin')
-  async triggerFeedbackReminders() {
+  async triggerFeedbackReminders(
+    @Headers('x-admin-secret') headerSecret: string,
+    @Query('secret') querySecret: string,
+  ) {
+    const provided = headerSecret || querySecret;
+    const expected = process.env.ADMIN_TRIGGER_SECRET;
+    if (!expected || provided !== expected) {
+      throw new UnauthorizedException('Invalid or missing admin secret.');
+    }
     const stats = await this.offresScheduler.sendFeedbackReminders();
     return { success: true, ...stats };
+  }
+
+  @Public()
+  @Post('admin/unlock-feedback/:postId')
+  async adminUnlockFeedback(
+    @Param('postId') postId: string,
+    @Headers('x-admin-secret') headerSecret: string,
+    @Query('secret') querySecret: string,
+  ) {
+    const provided = headerSecret || querySecret;
+    const expected = process.env.ADMIN_TRIGGER_SECRET;
+    if (!expected || provided !== expected) {
+      throw new UnauthorizedException('Invalid or missing admin secret.');
+    }
+    return await this.offresService.adminUnlockFeedback(postId);
   }
 
   @Post('create')
@@ -118,6 +146,35 @@ export class OffresController {
   async getCompanyCandidatures(@Req() req: any, @Param('societeId') societeId: string) {
     await assertEntrepriseOwnership(req, societeId);
     return await this.offresService.getCompanyCandidatures(societeId);
+  }
+
+  @Get('company/:societeId/feedback-eligible')
+  @Roles('entreprise', 'admin')
+  async getFeedbackEligiblePosts(@Req() req: any, @Param('societeId') societeId: string) {
+    await assertEntrepriseOwnership(req, societeId);
+    return await this.offresService.getFeedbackEligiblePosts(societeId);
+  }
+
+  @Post('company/:societeId/feedback')
+  @Roles('entreprise', 'admin')
+  async submitFeedback(
+    @Req() req: any,
+    @Param('societeId') societeId: string,
+    @Body() payload: Record<string, unknown>,
+  ) {
+    await assertEntrepriseOwnership(req, societeId);
+    return await this.offresService.submitFeedback(societeId, payload);
+  }
+
+  @Post('company/:societeId/feedback/decline')
+  @Roles('entreprise', 'admin')
+  async declineFeedback(
+    @Req() req: any,
+    @Param('societeId') societeId: string,
+    @Body() body: { id_post: number | string },
+  ) {
+    await assertEntrepriseOwnership(req, societeId);
+    return await this.offresService.declineFeedback(societeId, body?.id_post);
   }
 
   @Get('company/:societeId/candidatures/:studentId/cv')

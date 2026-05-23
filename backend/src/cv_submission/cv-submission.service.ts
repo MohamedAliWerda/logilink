@@ -752,16 +752,16 @@ export class CvSubmissionService {
     const normalized = this.normalizeSkillKey(value);
     if (!normalized) return 'Intermediaire';
     if (normalized.includes('expert')) return 'Expert';
-    if (normalized.includes('avance')) return 'Avance';
+    if (normalized.includes('avance')) return 'Avancé';
     if (normalized.includes('intermediaire')) return 'Intermediaire';
     if (normalized.includes('notion')) return 'Notions';
     if (
-      normalized.includes('debutant')
+      normalized.includes('débutant')
       || normalized.includes('faible')
       || normalized.includes('non acquis')
       || normalized === 'non_acquis'
     ) {
-      return 'Debutant';
+      return 'Débutant';
     }
     return 'Intermediaire';
   }
@@ -769,10 +769,10 @@ export class CvSubmissionService {
   private skillLevelPriority(level: unknown): number {
     const normalized = this.normalizeSkillLevel(level);
     const order: Record<string, number> = {
-      Debutant: 1,
+      Débutant: 1,
       Notions: 2,
       Intermediaire: 3,
-      Avance: 4,
+      Avancé: 4,
       Expert: 5,
     };
     return order[normalized] ?? 0;
@@ -780,8 +780,8 @@ export class CvSubmissionService {
 
   private matchingNiveauWeight(level: unknown): number {
     const normalized = this.normalizeSkillLevel(level);
-    if (normalized === 'Avance' || normalized === 'Expert') return 1.0;
-    if (normalized === 'Debutant' || normalized === 'Notions') return 0.2;
+    if (normalized === 'Avancé' || normalized === 'Expert') return 1.0;
+    if (normalized === 'Débutant' || normalized === 'Notions') return 0.2;
     if (normalized === 'Intermediaire') return 0.5;
     return 0.5;
   }
@@ -1100,13 +1100,13 @@ export class CvSubmissionService {
   }
 
   private predictLevelFromMoyenne(moyenne: number, isHard: boolean): string {
-    if (moyenne < 10) return 'Debutant';
-    if (moyenne < 12) return 'Debutant';
+    if (moyenne < 10) return 'Débutant';
+    if (moyenne < 12) return 'Débutant';
     if (moyenne < 15) {
-      if (isHard && moyenne >= 13) return 'Avance';
+      if (isHard && moyenne >= 13) return 'Avancé';
       return 'Intermediaire';
     }
-    return 'Avance';
+    return 'Avancé';
   }
 
   private classifySkillCategory(compType: string, isHardSkill: unknown): 'hard' | 'soft' {

@@ -1,9 +1,12 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { firstValueFrom } from 'rxjs';
 import Chart from 'chart.js/auto';
 import { SupabaseService } from '../../../services/supabase.service';
+import { environment } from '../../../../environments/environment';
 
 interface OldStudent {
   id: string;
@@ -129,6 +132,7 @@ L'équipe ISGI`;
   constructor(
     private supabaseService: SupabaseService,
     private cdr: ChangeDetectorRef,
+    private http: HttpClient,
   ) {}
 
   ngOnInit(): void {
@@ -188,27 +192,21 @@ L'équipe ISGI`;
 
   private async loadEnterpriseFeedback(shouldRefreshCharts = true): Promise<void> {
     try {
-      // Try with Societe join first to get company name
-      const { data, error } = await this.supabaseService.adminClient
-        .from('feedback_societe')
-        .select('*, Societe:id_soc(denomination_sociale, secteur_activite)');
-
-      if (error) throw error;
-      this.enterpriseFeedbacks = ((data as any[]) ?? []).map(row => this.mapEnterpriseFeedbackRow(row));
-    } catch {
-      // Fallback: plain select without join
-      try {
-        const { data: rawData, error: rawError } = await this.supabaseService.adminClient
-          .from('feedback_societe')
-          .select('*');
-        if (!rawError && rawData) {
-          this.enterpriseFeedbacks = (rawData as any[]).map(row => this.mapEnterpriseFeedbackRow(row));
-        } else {
-          this.enterpriseFeedbacks = [];
-        }
-      } catch {
-        this.enterpriseFeedbacks = [];
-      }
+      // Route through the admin backend so the service-role key bypasses
+      // RLS on feedback_societe and Societe (the anon client returns []).
+      const apiUrl = `${environment.apiUrl}/admin/dashboard/feedback-societe`;
+      const response: any = await firstValueFrom(this.http.get<any>(apiUrl));
+      const rows: any[] = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.data)
+            ? response.data.data
+            : [];
+      this.enterpriseFeedbacks = rows.map(row => this.mapEnterpriseFeedbackRow(row));
+    } catch (err) {
+      console.error('feedback_societe load failed', err);
+      this.enterpriseFeedbacks = [];
     }
 
     if (shouldRefreshCharts) {

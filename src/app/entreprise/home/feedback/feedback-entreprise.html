@@ -27,21 +27,6 @@
     </div>
 </div>
 
-<!-- Already submitted state -->
-<div class="page-wrapper" *ngIf="screenState === 'submitted'">
-    <div class="page-header">
-        <h1>Boucle de feedback industriel</h1>
-        <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
-    </div>
-    <div class="form-card success-card" style="text-align:center;padding:48px 32px;">
-        <div class="success-icon">✓</div>
-        <h2 class="success-title">Feedback déjà soumis</h2>
-        <p class="success-description">
-            Vous avez déjà complété le formulaire de feedback pour votre offre d'emploi. ISGIS vous remercie de votre contribution à l'amélioration continue de nos formations.
-        </p>
-    </div>
-</div>
-
 <!-- Select offre state: multiple eligible offres -->
 <div class="page-wrapper" *ngIf="screenState === 'select'">
     <div class="page-header">
@@ -101,6 +86,14 @@
         <p class="success-description">
             Nous prenons note de votre réponse. Si votre situation évolue ou si vous recrutez un diplômé ISGIS à l'avenir, n'hésitez pas à revenir sur cette section.
         </p>
+        <p *ngIf="hasMoreFeedbacks" style="color:#6f4d24;margin-top:18px;">
+            Vous avez encore <strong>{{ eligibleOffres.length }}</strong> offre(s) en attente d'évaluation.
+        </p>
+        <div style="margin-top:24px;display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary" type="button" (click)="continueAfterSuccess()">
+                {{ hasMoreFeedbacks ? 'Évaluer l\'offre suivante →' : 'Retour aux offres →' }}
+            </button>
+        </div>
     </div>
 </div>
 
@@ -110,6 +103,9 @@
     <div class="page-header">
         <h1>Boucle de feedback industriel</h1>
         <p>Donnez votre retour pour améliorer l'adéquation formation-emploi.</p>
+        <p *ngIf="selectedOffre" style="margin-top:8px;color:#6f4d24;font-size:0.95rem;">
+            Offre évaluée : <strong>{{ selectedOffre.titre }}</strong>
+        </p>
     </div>
 
     <!-- Progress Steps Tabs -->
@@ -215,6 +211,14 @@
         <p class="success-description">
             Votre évaluation a bien été enregistrée. ISGIS vous remercie de votre confiance et de votre contribution à l'amélioration continue de nos formations.
         </p>
+        <p *ngIf="hasMoreFeedbacks" style="color:#6f4d24;margin-top:18px;">
+            Vous avez encore <strong>{{ eligibleOffres.length }}</strong> offre(s) en attente d'évaluation.
+        </p>
+        <div style="margin-top:24px;display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary" type="button" (click)="continueAfterSuccess()">
+                {{ hasMoreFeedbacks ? 'Évaluer l\'offre suivante →' : 'Retour aux offres →' }}
+            </button>
+        </div>
     </div>
 </div>
 

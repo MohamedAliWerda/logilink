@@ -27,9 +27,9 @@ DEFAULT_THRESHOLD = float(os.getenv("MATCH_THRESHOLD", "0.72"))
 STATUS_MATCH_THRESHOLD = 0.60
 DEFAULT_NIVEAU_WEIGHT = 0.50
 NIVEAU_WEIGHTS = {
-    "avance": 1.00,
+    "avancé": 1.00,
     "intermediaire": 0.50,
-    "debutant": 0.20,
+    "débutant": 0.20,
 }
 MAX_GLOBAL_GAPS = int(os.getenv("MAX_GLOBAL_GAPS", "5000"))
 MAX_TOP_METIER_GAPS = int(os.getenv("MAX_TOP_METIER_GAPS", "40"))
@@ -127,11 +127,11 @@ def _resolve_niveau_weight(niveau: Any) -> float:
     if not normalized:
         return DEFAULT_NIVEAU_WEIGHT
 
-    if "avance" in normalized or "expert" in normalized:
-        return NIVEAU_WEIGHTS["avance"]
+    if "avancé" in normalized or "expert" in normalized:
+        return NIVEAU_WEIGHTS["avancé"]
 
-    if "debutant" in normalized:
-        return NIVEAU_WEIGHTS["debutant"]
+    if "débutant" in normalized:
+        return NIVEAU_WEIGHTS["débutant"]
 
     if "intermediaire" in normalized:
         return NIVEAU_WEIGHTS["intermediaire"]

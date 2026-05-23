@@ -1,36 +1,31 @@
 ﻿{
-  "professionalTitle": "Responsable logistique junior",
-  "specialization": "Supply chain",
-  "objectif": "Contribuer a l optimisation des flux transport et entrepot avec suivi KPI.",
-  "info": {
-    "permis": "B",
-    "linkedin": "https://linkedin.com/in/sample"
-  },
-  "hardSkills": [
-    {
-      "type": "Outil / Logiciel",
-      "nom": "Excel",
-      "niveau": "Avance"
+    "professionalTitle": "Responsable logistique junior",
+    "specialization": "Supply chain",
+    "objectif": "Contribuer a l optimisation des flux transport et entrepot avec suivi KPI.",
+    "info": {
+        "permis": "B",
+        "linkedin": "https://linkedin.com/in/sample"
     },
-    {
-      "type": "Metier T&L",
-      "nom": "Gestion des stocks",
-      "niveau": "Intermediaire"
-    }
-  ],
-  "softSkills": [
-    {
-      "nom": "Communication",
-      "niveau": "Intermediaire",
-      "contexte": "Coordination avec equipe transport"
-    }
-  ],
-  "experiences": [
-    {
-      "poste": "Stagiaire logistique",
-      "entreprise": "Entreprise Demo",
-      "description": "Suivi des expeditions et preparation des reportings hebdomadaires.",
-      "motsCles": "logistique transport expedition"
-    }
-  ]
+    "hardSkills": [{
+            "type": "Outil / Logiciel",
+            "nom": "Excel",
+            "niveau": "Avancé"
+        },
+        {
+            "type": "Metier T&L",
+            "nom": "Gestion des stocks",
+            "niveau": "Intermediaire"
+        }
+    ],
+    "softSkills": [{
+        "nom": "Communication",
+        "niveau": "Intermediaire",
+        "contexte": "Coordination avec equipe transport"
+    }],
+    "experiences": [{
+        "poste": "Stagiaire logistique",
+        "entreprise": "Entreprise Demo",
+        "description": "Suivi des expeditions et preparation des reportings hebdomadaires.",
+        "motsCles": "logistique transport expedition"
+    }]
 }

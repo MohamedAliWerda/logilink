@@ -24,6 +24,7 @@ export interface Offre {
   date_creation?: string;
   createdAt?: string;
   status?: string;
+  feedback_email_sent_at?: string | null;
 }
 
 @Component({
@@ -306,6 +307,7 @@ export class Offres implements OnInit, OnDestroy {
   }
 
   isFeedbackAvailable(offre: Offre): boolean {
+    if (offre.feedback_email_sent_at) return true;
     const raw = offre.date_creation ?? offre.createdAt;
     if (!raw) return false;
     const created = new Date(raw);

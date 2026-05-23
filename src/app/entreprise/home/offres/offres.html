@@ -161,6 +161,24 @@
     </div>
 </div>
 
+<!-- Confirmation Suppression -->
+<div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="cancelDelete()">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width:420px">
+        <div class="modal-header">
+            <h3>Confirmer la suppression</h3>
+            <button class="modal-close" (click)="cancelDelete()">✕</button>
+        </div>
+        <div class="form-body">
+            <p>Voulez-vous vraiment supprimer l'offre <strong>{{ pendingDeleteOffre?.titre_poste || pendingDeleteOffre?.titre }}</strong> ?</p>
+            <p style="color:#888;font-size:.85rem;margin-top:8px">Cette action est irréversible.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-annuler" (click)="cancelDelete()">Annuler</button>
+            <button type="button" class="btn-supprimer" (click)="confirmDelete()">Supprimer</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Créer / Modifier -->
 <div class="modal-overlay" *ngIf="showCreateModal || showEditModal" (click)="closeModals()">
     <div class="modal" (click)="$event.stopPropagation()">
