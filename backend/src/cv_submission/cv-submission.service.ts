@@ -2914,33 +2914,30 @@ Your task is to evaluate the resume against the reference keyword base provided 
 
 Rules:
 1. Be strict and deterministic: for the same input, return the same scores.
-2. Use only the resume content and reference keywords.
+2. Use the resume content and reference keywords and your knowledge.
 3. Be conservative because the candidate is still a student.
 4. Do not inflate scores just because the CV is clean or well formatted.
 5. Even a very good student CV should usually stay in a moderate range.
 6. A word in the CV should count only if it is relevant to the professionalTitle or to the requested domain.
 7. If the CV contains meaningless or unrelated words such as "hhh", "tjb", or words with no clear relation to the professionalTitle, decrease the score.
-8. Penalize CVs that contain many unrelated, generic, or incomprehensible words, because this weakens the CV.
+8. Strictly penalize CVs that include unrelated content, generic buzzwords, excessive keyword stuffing, spelling or grammar mistakes, incorrect French terminology, non-existent words, incoherent phrases, or information unrelated to the target job. Such elements should significantly reduce the ATS score because they negatively affect credibility, readability, recruiter perception, and ATS effectiveness.
 9. Output only the ATS score as a numeric percentage between 1 and 100.
 10. Do not add any explanation.
-
 Scoring guidance for student CVs:
 - A relevant and well-filled diploma/formation section should increase the score clearly.
 - If the student adds a solid diploma that matches the professionalTitle or the domain, the score should move up noticeably even without company experience.
 - More than one diploma should increase the score more than a single diploma, especially if the diplomas are relevant and progressive (example: Licence + Master).
 - Empty/minimal CV (almost no content) → 3-5%
-- Very weak CV (few fields filled, almost no keywords) → 5-10%
-- Below-average CV (some sections filled, limited detail) → 10-20%
-- Normal/average CV (basic sections, some keywords, standard quality) → 20-30%
-- Good student CV (complete enough, relevant keywords, decent detail, one strong diploma) → 25-35%
-- Very strong student CV (excellent for a student, but still student level, multiple diplomas or strong formation path) → 35-50%
+- Very weak CV (few fields filled, almost no keywords) → 5-7%
+- Below-average CV (some sections filled, limited detail) → 7-10%
+- Normal/average CV (basic sections, some keywords, standard quality) → 10-20%
+- Good student CV (complete enough, relevant keywords, decent detail, one strong diploma) → 20-30%
+- Very strong student CV (excellent for a student, but still student level, multiple diplomas or strong formation path) → 30-50%
 - A student CV can reach 50% only if it is excellent and contains several technical skills, professional projects compatible with the professionalTitle, an excellent PFE, excellent soft skills, excellent language level, excellent technical projects compatible with the target professionalTitle, and an excellent associative path.
 - A student CV can exceed 60% only if it has everything required for 50% and also more than 2 years of company experience.
 - Above 60% should almost never happen for a student CV without real professional experience.
-
 Resume: ${resumeText.slice(0, 14000)}
 Reference Keywords: ${referenceKeywords.join(', ')}
-
 Respond ONLY in this exact format with this exact section header:
 • ATS Score: [number 1-100]%
 `.trim();
