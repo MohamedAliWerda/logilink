@@ -580,26 +580,32 @@ export class CvSubmissionService {
   }
 
   async upsertCv(authId: string, payload: any): Promise<void> {
+    const hasAtsScore = Number.isFinite(Number(payload?.atsScore));
     // Upsert main row using auth_id as unique key
+    const mainRowPayload: Record<string, any> = {
+      auth_id: authId,
+      metier_id: this.normalizeMetierId(payload?.metierId) || null,
+      professional_title: payload.professionalTitle,
+      specialization: payload.specialization,
+      objectif: payload.objectif,
+      permis: payload.info?.permis,
+      linkedin: payload.info?.linkedin,
+      date_naissance: this.sanitizeDate(payload.info?.dateNaissance),
+      photo_url: payload.info?.photoUrl,
+      consent_given: payload.consentGiven,
+      consent_at: payload.consentGiven ? new Date().toISOString() : null,
+      status: 'draft',
+      updated_at: new Date().toISOString(),
+    };
+
+    if (hasAtsScore) {
+      mainRowPayload.ats_score = this.clampScore(Number(payload.atsScore));
+    }
+
     const { data: mainRow, error: mainError } = await this.supabase
       .from('cv_submissions')
       .upsert([
-        {
-          auth_id: authId,
-          metier_id: this.normalizeMetierId(payload?.metierId) || null,
-          professional_title: payload.professionalTitle,
-          specialization: payload.specialization,
-          objectif: payload.objectif,
-          permis: payload.info?.permis,
-          linkedin: payload.info?.linkedin,
-          date_naissance: this.sanitizeDate(payload.info?.dateNaissance),
-          photo_url: payload.info?.photoUrl,
-          ats_score: payload.atsScore,
-          consent_given: payload.consentGiven,
-          consent_at: payload.consentGiven ? new Date().toISOString() : null,
-          status: 'draft',
-          updated_at: new Date().toISOString(),
-        },
+        mainRowPayload,
       ], { onConflict: 'auth_id' })
       .select('id,professional_title')
       .single();

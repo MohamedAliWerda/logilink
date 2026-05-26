@@ -103,8 +103,8 @@
               <input id="email" formControlName="email" type="email" placeholder="Société@gmail.tn" />
             </div>
             <span class="field-error" *ngIf="isFieldInvalid('email')">
-              <ng-container *ngIf="registerForm.get('email')?.errors?.['required']">L'e-mail est obligatoire.</ng-container>
-              <ng-container *ngIf="registerForm.get('email')?.errors?.['email']">Adresse e-mail invalide</ng-container>
+              <ng-container *ngIf="registerForm.get('email')?.errors?.['required']">L'adresse e-mail est obligatoire.</ng-container>
+              <ng-container *ngIf="registerForm.get('email')?.errors?.['email']">Adresse e-mail invalide (ex : societe@example.tn).</ng-container>
             </span>
           </div>
           <div class="col">
@@ -117,7 +117,7 @@
             </div>
             <span class="field-error" *ngIf="isFieldInvalid('telephone')">
               <ng-container *ngIf="registerForm.get('telephone')?.errors?.['required']">Le numéro de téléphone est obligatoire.</ng-container>
-              <ng-container *ngIf="registerForm.get('telephone')?.errors?.['invalidTelephone']">Maximum 8 chiffres</ng-container>
+              <ng-container *ngIf="registerForm.get('telephone')?.errors?.['invalidTelephone']">Le numéro doit contenir exactement 8 chiffres (ex : 71 234 567).</ng-container>
             </span>
           </div>
         </div>
@@ -143,14 +143,15 @@
         </span>
 
         <!-- Adresse -->
-        <label for="adresse">Adresse</label>
-        <div class="input-icon-wrap" [class.filled]="!!registerForm.get('adresse')?.value">
+        <label for="adresse">Adresse <span class="required-star">*</span></label>
+        <div class="input-icon-wrap" [class.input-error]="isFieldInvalid('adresse')" [class.filled]="!!registerForm.get('adresse')?.value">
           <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
             <circle cx="12" cy="10" r="3"/>
           </svg>
           <input id="adresse" formControlName="adresse" placeholder="Tunis, Sfax" />
         </div>
+        <span class="field-error" *ngIf="isFieldInvalid('adresse')">L'adresse de la société est obligatoire.</span>
 
         <!-- Secteur d'activité -->
         <label for="description">

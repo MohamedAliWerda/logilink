@@ -661,6 +661,119 @@ L'équipe ISGI`;
     return 0;
   }
 
+  /**
+   * Collect recommendation notes and normalise them to a 0-10 scale.
+   *
+   * Source: every row in `feedbackStudents` (the `feedback` table) — these
+   * are all real form submissions.  Admin-created stubs are already excluded
+   * because `confirmAddStudent` stores `recommandation_isgis = '0'`, which
+   * maps to `recommendationNote = undefined` and is filtered below.
+   *
+   * Scale auto-detection: when every note in the sample is ≤ 5 the data is
+   * on a 1-5 star scale → multiply by 2 to reach the 0-10 NPS scale so that
+   * thresholds (≥ 9 promoter, < 7 detractor) remain meaningful.
+   */
+  private resolveNpsNotes(): number[] {
+    // Apply the current promo filter so the NPS scope matches every other KPI.
+    const source = this.selectedPromo !== null
+      ? this.feedbackStudents.filter(s => s.promotion === this.selectedPromo)
+      : this.feedbackStudents;
+
+    const raw = source
+      .map(s => s.recommendationNote)
+      .filter((n): n is number => typeof n === 'number' && n > 0);
+
+    if (!raw.length) return [];
+
+    const max = Math.max(...raw);
+    // 1-5 scale detected → normalise to 0-10
+    if (max <= 5) return raw.map(n => Math.round((n / 5) * 10));
+    return raw;
+  }
+
+  /** Number of valid responses included in the current NPS calculation. */
+  get npsRespondentsCount(): number {
+    return this.resolveNpsNotes().length;
+  }
+
+  // ── Satisfaction globale (star rating) ──────────────────────────────────
+
+  /** Helper for star-loop iteration in the template. */
+  readonly starRange = [1, 2, 3, 4, 5];
+
+  /**
+   * Average satisfaction on a 1-5 scale, derived from the adequation field:
+   *   Totalement en lien → 5 | Partiellement en lien → 3 | Pas du tout → 1
+   * Only includes students who have a non-zero rating (i.e. adequation filled).
+   */
+  get satisfactionAverage(): number {
+    const ratings = this.dashboardStudents
+      .map(s => s.rating)
+      .filter((r): r is number => typeof r === 'number' && r > 0);
+    if (!ratings.length) return 0;
+    return Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10;
+  }
+
+  /** Formatted average text (e.g. "3.8"). */
+  get satisfactionAverageText(): string {
+    return this.satisfactionAverage.toFixed(1);
+  }
+
+  /** Number of filled stars to display (rounded from average). */
+  get satisfactionFilledStars(): number {
+    return Math.round(this.satisfactionAverage);
+  }
+
+  /** Qualitative label for the satisfaction score. */
+  get satisfactionLabel(): string {
+    const avg = this.satisfactionAverage;
+    if (avg >= 4.5) return 'Excellent';
+    if (avg >= 3.5) return 'Bon';
+    if (avg >= 2.5) return 'Moyen';
+    if (avg > 0)    return 'À améliorer';
+    return '—';
+  }
+
+  /** CSS tone class for the satisfaction label chip. */
+  get satisfactionToneClass(): string {
+    const avg = this.satisfactionAverage;
+    if (avg >= 4.5) return 'tone-success';
+    if (avg >= 3.5) return 'tone-good';
+    if (avg >= 2.5) return 'tone-warn';
+    return 'tone-danger';
+  }
+
+  /** Distribution rows for the 3 adequation levels, ordered 5→3→1. */
+  get satisfactionDistribution(): { stars: number; label: string; count: number; percent: number }[] {
+    const students = this.dashboardStudents.filter(
+      s => typeof s.rating === 'number' && s.rating > 0,
+    );
+    const total = students.length;
+
+    return [
+      { stars: 5, label: 'Totalement en lien' },
+      { stars: 3, label: 'Partiellement en lien' },
+      { stars: 1, label: 'Pas du tout en lien' },
+    ].map(({ stars, label }) => {
+      const count = students.filter(s => s.rating === stars).length;
+      return { stars, label, count, percent: total ? Math.round((count / total) * 100) : 0 };
+    });
+  }
+
+  /** Number of students included in the satisfaction score. */
+  get satisfactionRespondentsCount(): number {
+    return this.dashboardStudents.filter(
+      s => typeof s.rating === 'number' && s.rating > 0,
+    ).length;
+  }
+
+  /** Hex colour for a satisfaction row's bar. */
+  satisfactionBarColor(stars: number): string {
+    if (stars >= 5) return '#1D9E75';
+    if (stars >= 3) return '#F5A623';
+    return '#EF4444';
+  }
+
   private getRecommendationCategory(note: number): 'promoteur' | 'neutre' | 'detracteur' {
     if (note >= 9) {
       return 'promoteur';
@@ -1221,20 +1334,30 @@ L'équipe ISGI`;
 
 
 
+  /** Percentage of promoters, neutrals and detractors from the recommendation notes. */
+  get npsBreakdown(): { promoteurs: number; neutres: number; detracteurs: number } {
+    const notes = this.resolveNpsNotes();
+    if (!notes.length) return { promoteurs: 0, neutres: 0, detracteurs: 0 };
+
+    const total = notes.length;
+    const promoteurs  = notes.filter(n => n >= 9).length;
+    const neutres     = notes.filter(n => n >= 7 && n < 9).length;
+    const detracteurs = notes.filter(n => n < 7).length;
+
+    return {
+      promoteurs:  Math.round((promoteurs  / total) * 100),
+      neutres:     Math.round((neutres     / total) * 100),
+      detracteurs: Math.round((detracteurs / total) * 100),
+    };
+  }
+
   get npsScore(): number {
-    const notes = this.dashboardStudents
-      .map(student => student.recommendationNote)
-      .filter((note): note is number => typeof note === 'number');
+    const notes = this.resolveNpsNotes();
+    if (!notes.length) return 0;
 
-    if (!notes.length) {
-      return 0;
-    }
-
-    const promoters = notes.filter(note => this.getRecommendationCategory(note) === 'promoteur').length;
-    const detractors = notes.filter(note => this.getRecommendationCategory(note) === 'detracteur').length;
-    const promoterPercent = (promoters / notes.length) * 100;
-    const detractorPercent = (detractors / notes.length) * 100;
-    return Math.round(promoterPercent - detractorPercent);
+    const promoters  = notes.filter(n => this.getRecommendationCategory(n) === 'promoteur').length;
+    const detractors = notes.filter(n => this.getRecommendationCategory(n) === 'detracteur').length;
+    return Math.round(((promoters - detractors) / notes.length) * 100);
   }
 
   get npsLabel(): string {

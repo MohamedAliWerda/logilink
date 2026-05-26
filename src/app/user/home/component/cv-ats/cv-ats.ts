@@ -794,7 +794,8 @@ export class CvAts {
       }
 
       // CV persistence layer call (after preview)
-      const payload = this.buildSubmissionPayload(this.atsScore);
+      const payload = this.buildSubmissionPayload(this.atsScore) as any;
+      delete payload.atsScore;
 
       this.cvSubmissionService.upsertCv(payload).catch((err) => console.error('CV save failed:', err));
     } catch (err) {
@@ -847,7 +848,6 @@ export class CvAts {
         suggestions: '',
       };
 
-      localStorage.setItem('latestAtsScore', String(scoreResult.atsScore));
       localStorage.setItem('latestAtsMatchScore', String(scoreResult.matchScore));
       localStorage.setItem('latestAtsSuccessScore', String(scoreResult.successScore));
 

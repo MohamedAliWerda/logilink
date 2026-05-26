@@ -516,32 +516,25 @@ export class Dashboard {
       .length;
   }
 
-  private scoreFromStorage(): number | null {
-    const raw = localStorage.getItem('latestAtsScore');
-    if (!raw) return null;
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return null;
-    return Math.max(0, Math.min(100, Math.round(n)));
-  }
-
   private async loadAtsScore(): Promise<void> {
-    const local = this.scoreFromStorage();
-    if (local !== null) {
-      this.atsScoreFromApi = local;
-      this.recomputeStats();
-    }
-
     try {
       const cv = await this.cvSubmissionService.fetchMyCv();
-      if (cv?.atsScore === undefined || cv?.atsScore === null) return;
+      if (cv?.atsScore === undefined || cv?.atsScore === null) {
+        this.atsScoreFromApi = null;
+        this.recomputeStats();
+        this.cdr.detectChanges();
+        return;
+      }
 
       const score = Math.max(0, Math.min(100, Math.round(Number(cv.atsScore) || 0)));
       this.atsScoreFromApi = score;
-      localStorage.setItem('latestAtsScore', String(score));
       this.recomputeStats();
       this.cdr.detectChanges();
     } catch (err) {
       console.error('Dashboard ATS score fetch failed', err);
+      this.atsScoreFromApi = null;
+      this.recomputeStats();
+      this.cdr.detectChanges();
     }
   }
 
@@ -712,13 +705,7 @@ export class Dashboard {
 
   /** Recompute KPI stat values to reflect current data. */
   recomputeStats() {
-    // ATS score: average coverage of required skill levels
-    const calculatedAts = this.skills && this.skills.length
-      ? Math.round(
-          (this.skills.reduce((acc, s) => acc + Math.min(1, s.current / (s.required || 1)), 0) / this.skills.length) * 100
-        )
-      : 0;
-    const ats = this.atsScoreFromApi ?? calculatedAts;
+    const ats = this.atsScoreFromApi ?? 0;
 
     // employability score: backend persisted score only (no local fallback)
     this.employabilityScore = this.employabilityScoreFromApi ?? 0;

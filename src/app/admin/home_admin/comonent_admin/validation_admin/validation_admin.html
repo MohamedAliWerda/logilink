@@ -28,7 +28,7 @@
         <!-- Job status banner -->
         <div class="job-banner" *ngIf="currentJob">
             <div class="job-banner-text">
-                <strong>Tâche {{ currentJob.id }}</strong>
+                <strong>Recommandations</strong>
                 <span class="job-status-{{ currentJob.status }}">{{ displayJobStatus(currentJob.status) }}</span>
                 <span *ngIf="currentJob.stats as s" class="job-stats">
         <ng-container *ngIf="s['total'] != null">
