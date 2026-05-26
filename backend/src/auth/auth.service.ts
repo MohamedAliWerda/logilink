@@ -68,7 +68,7 @@ export class AuthService {
   async signIn(signInDto: SignInDto) {
     const cinPassportValue = Number(signInDto.cin_passport.trim());
     if (!Number.isFinite(cinPassportValue)) {
-      throw new UnauthorizedException('This account does not exist');
+      throw new UnauthorizedException('Ce compte n\'existe pas.');
     }
 
     const supabase = getSupabase();
@@ -83,7 +83,7 @@ export class AuthService {
     }
 
     if (!user) {
-      throw new UnauthorizedException('This account does not exist');
+      throw new UnauthorizedException('Ce compte n\'existe pas.');
     }
 
     const passwordMatches = looksLikeBcryptHash(user.mot_de_passe)
@@ -91,7 +91,7 @@ export class AuthService {
       : signInDto.mot_de_passe === user.mot_de_passe;
 
     if (!passwordMatches) {
-      throw new UnauthorizedException('Password is wrong');
+      throw new UnauthorizedException('Mot de passe incorrect.');
     }
 
     if (!user.email) {

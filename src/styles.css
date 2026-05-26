@@ -1,135 +1,144 @@
 /* You can add global styles to this file, and also import other style files */
 
+html,
+body {
+    margin: 0;
+    background: #f4f1ec;
+}
+
+
 /* Shared Score + panel style for admin and student pages */
+
 .score-section {
-  background: #f5f6f8;
-  padding: 1rem;
-  border-radius: 16px;
-  border: 1px solid #f0f2f7;
-  box-shadow: 0 4px 14px rgba(80, 58, 12, 0.05);
-  margin-bottom: 1.2rem;
+    background: #f5f6f8;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid #f0f2f7;
+    box-shadow: 0 4px 14px rgba(80, 58, 12, 0.05);
+    margin-bottom: 1.2rem;
 }
 
 .score-header {
-  background: linear-gradient(135deg, #fff7eb 0%, #ffe7c5 58%, #ffd9a0 100%);
-  border-radius: 14px;
-  border: 1px solid rgba(224, 120, 0, 0.18);
-  padding: 1rem 1.2rem;
-  margin-bottom: 1rem;
+    background: linear-gradient(135deg, #fff7eb 0%, #ffe7c5 58%, #ffd9a0 100%);
+    border-radius: 14px;
+    border: 1px solid rgba(224, 120, 0, 0.18);
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
 }
 
 .score-header h1,
 .score-header h2 {
-  margin: 0;
-  color: #4f3314;
-  font-weight: 800;
+    margin: 0;
+    color: #4f3314;
+    font-weight: 800;
 }
 
 .score-panel {
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #f0f2f7;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  padding: 1.2rem;
-  margin-bottom: 1rem;
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #f0f2f7;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    padding: 1.2rem;
+    margin-bottom: 1rem;
 }
 
 .score-panel h2 {
-  margin: 0 0 0.5rem;
-  color: #1f263b;
-  font-size: 1.05rem;
+    margin: 0 0 0.5rem;
+    color: #1f263b;
+    font-size: 1.05rem;
 }
 
 .score-panel .panel-sub {
-  color: #7e869a;
-  font-size: 0.85rem;
+    color: #7e869a;
+    font-size: 0.85rem;
 }
 
 .score-panel .donut {
-  width: 130px;
-  height: 130px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  box-shadow: 0 0 20px rgba(0,0,0,0.08);
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
 }
 
 .score-panel .donut-inner {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .score-panel .donut-value {
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: #e07800;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #e07800;
 }
 
 .score-panel .bar-track {
-  width: 100%;
-  height: 10px;
-  background: #f0f2f7;
-  border-radius: 999px;
-  overflow: hidden;
+    width: 100%;
+    height: 10px;
+    background: #f0f2f7;
+    border-radius: 999px;
+    overflow: hidden;
 }
 
 .score-panel .bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ffc46a, #e07800);
-  border-radius: 999px;
+    height: 100%;
+    background: linear-gradient(90deg, #ffc46a, #e07800);
+    border-radius: 999px;
 }
 
+
 /* ----- Global unified interface style ----- */
+
 .global-pill-title {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  background: #e6d0ae;
-  border-radius: 2.5rem;
-  padding: 0.6rem 3.2rem;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #5a3e1c;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  box-shadow: 0 6px 16px rgba(80, 58, 12, 0.18);
-  border: 1px solid rgba(224, 120, 0, 0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: #e6d0ae;
+    border-radius: 2.5rem;
+    padding: 0.6rem 3.2rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #5a3e1c;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    box-shadow: 0 6px 16px rgba(80, 58, 12, 0.18);
+    border: 1px solid rgba(224, 120, 0, 0.25);
 }
 
 .global-panel-banner {
-  background: linear-gradient(135deg, #fff7eb 0%, #ffe7c5 58%, #ffd9a0 100%);
-  border-radius: 14px;
-  border: 1px solid rgba(224, 120, 0, 0.18);
-  box-shadow: 0 4px 14px rgba(80, 58, 12, 0.10);
-  padding: 0.7rem 0.85rem;
-  margin-bottom: 0.75rem;
-  text-align: left;
-  min-height: 58px;
+    background: linear-gradient(135deg, #fff7eb 0%, #ffe7c5 58%, #ffd9a0 100%);
+    border-radius: 14px;
+    border: 1px solid rgba(224, 120, 0, 0.18);
+    box-shadow: 0 4px 14px rgba(80, 58, 12, 0.10);
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.75rem;
+    text-align: left;
+    min-height: 58px;
 }
 
 .global-panel-banner h1,
 .global-panel-banner h2,
 .global-panel-banner p {
-  margin: 0;
+    margin: 0;
 }
 
 .global-panel-banner h1 {
-  color: #4f3314;
-  font-size: 1.35rem;
-  font-weight: 800;
+    color: #4f3314;
+    font-size: 1.35rem;
+    font-weight: 800;
 }
 
 .global-panel-banner p {
-  color: #6f4d24;
-  font-size: 0.95rem;
-  margin-top: 0.45rem;
+    color: #6f4d24;
+    font-size: 0.95rem;
+    margin-top: 0.45rem;
 }
-

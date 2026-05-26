@@ -41,9 +41,23 @@ export class LoginEntrepriseComponent {
 
   async onSubmit(): Promise<void> {
     if (this.loginForm.invalid) {
-      this.authError = 'Veuillez remplir tous les champs correctement.';
-      this.emailError = '';
-      this.passwordError = '';
+      this.authError = '';
+      const emailCtrl    = this.loginForm.get('email');
+      const passwordCtrl = this.loginForm.get('password');
+
+      if (!emailCtrl?.value?.toString().trim()) {
+        this.emailError = 'Veuillez saisir votre adresse email.';
+      } else if (emailCtrl.hasError('email')) {
+        this.emailError = 'Adresse email invalide.';
+      } else {
+        this.emailError = '';
+      }
+
+      this.passwordError = !passwordCtrl?.value
+        ? 'Veuillez saisir votre mot de passe.'
+        : '';
+
+      this.loginForm.markAllAsTouched();
       this.cdr.detectChanges();
       return;
     }
