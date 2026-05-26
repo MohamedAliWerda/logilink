@@ -17,6 +17,8 @@ export class Login {
   hidePassword: boolean = true;
   isSubmitting = false;
   authError: string | null = null;
+  identifiantError: string = '';
+  passwordError: string = '';
 
   constructor(
     private readonly fb: FormBuilder,
@@ -31,9 +33,25 @@ export class Login {
   }
 
   async onSubmit(): Promise<void> {
-    if (this.loginForm.invalid) return;
-
+    this.identifiantError = '';
+    this.passwordError = '';
     this.authError = null;
+
+    const identifiantCtrl = this.loginForm.get('identifiant');
+    const passwordCtrl    = this.loginForm.get('password');
+
+    if (this.loginForm.invalid) {
+      if (!identifiantCtrl?.value?.toString().trim()) {
+        this.identifiantError = 'Veuillez saisir votre identifiant.';
+      }
+      if (!passwordCtrl?.value) {
+        this.passwordError = 'Veuillez saisir votre mot de passe.';
+      }
+      this.loginForm.markAllAsTouched();
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.isSubmitting = true;
     this.cdr.detectChanges();
 
@@ -42,13 +60,15 @@ export class Login {
 
     // Client-side format check
     if (!cinPassportRaw || !/^\d{4,}$/.test(cinPassportRaw.trim())) {
-      this.authError = 'This account does not exist';
+      this.authError = 'Ce compte n\'existe pas.';
       this.isSubmitting = false;
       this.cdr.detectChanges();
       return;
     }
 
     try {
+      this.identifiantError = '';
+      this.passwordError = '';
       const response = await this.authApiService.signIn(cinPassportRaw.trim(), password);
       const { challengeId, email, type } = response.data;
 

@@ -373,7 +373,7 @@ export class ValidationAdmin implements OnInit, OnDestroy {
 
   displayJobStatus(status: string | null | undefined): string {
     const v = (status ?? '').toLowerCase();
-    if (v === 'running') return 'En cours';
+    if (v === 'running') return 'En traitement';
     if (v === 'succeeded') return 'Terminée';
     if (v === 'failed') return 'Échouée';
     if (v === 'pending') return 'En attente';

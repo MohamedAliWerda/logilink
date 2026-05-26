@@ -205,15 +205,46 @@ export class OffresService {
         throw new Error('id_post invalide');
       }
 
+      // Resolve the post's current email_round so the decline is tagged to the
+      // right feedback cycle. Rows from round N do not block round N+1.
+      let emailRound = 1;
+      try {
+        const { data: postRow } = await this.supabase
+          .from('post')
+          .select('email_round')
+          .eq('id_line', parsedPostId)
+          .maybeSingle();
+        const parsed = Number(postRow?.email_round ?? 1);
+        emailRound = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+      } catch {
+        // email_round column not yet present — default to 1.
+      }
+
+      // PK is now (id_soc, id_post, email_round) so each round's decline is a
+      // separate row. Historical rows are never deleted.
       const { error } = await this.supabase
         .from('feedback_declined')
         .upsert(
-          [{ id_soc: parsedSocieteId, id_post: parsedPostId }],
-          { onConflict: 'id_soc,id_post' },
+          [{ id_soc: parsedSocieteId, id_post: parsedPostId, email_round: emailRound }],
+          { onConflict: 'id_soc,id_post,email_round' },
         );
 
       if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+        // Graceful fallback: if email_round column / new PK don't exist yet,
+        // fall back to the original two-column upsert.
+        if (/email_round/i.test(error.message) && /does not exist|schema cache/i.test(error.message)) {
+          const { error: fallbackError } = await this.supabase
+            .from('feedback_declined')
+            .upsert(
+              [{ id_soc: parsedSocieteId, id_post: parsedPostId }],
+              { onConflict: 'id_soc,id_post' },
+            );
+          if (fallbackError) {
+            throw new Error(`Supabase error: ${fallbackError.message}`);
+          }
+        } else {
+          throw new Error(`Supabase error: ${error.message}`);
+        }
       }
 
       return { success: true, message: 'Réponse enregistrée' };
@@ -234,6 +265,25 @@ export class OffresService {
 
       const body: Record<string, unknown> = { ...payload, id_soc: parsedSocieteId };
 
+      // ── Resolve the current email_round for this post and tag the feedback ──
+      // This lets getFeedbackEligiblePosts distinguish round-1 submissions from
+      // round-2 submissions, so old feedback does not block a new feedback cycle.
+      const postIdNum = Number(body['id_post']);
+      if (Number.isInteger(postIdNum) && postIdNum > 0) {
+        try {
+          const { data: postRow } = await this.supabase
+            .from('post')
+            .select('email_round')
+            .eq('id_line', postIdNum)
+            .maybeSingle();
+          const round = Number(postRow?.email_round ?? 1);
+          body['email_round'] = Number.isFinite(round) && round >= 1 ? round : 1;
+        } catch {
+          // email_round column not yet present — default to 1.
+          body['email_round'] = 1;
+        }
+      }
+
       const tryInsert = async (row: Record<string, unknown>) => {
         return await this.supabase.from('feedback_societe').insert([row]);
       };
@@ -246,11 +296,16 @@ export class OffresService {
         ({ error } = await tryInsert(rest));
       }
 
+      // If email_round column doesn't exist yet, drop it and retry.
+      if (error && /email_round/i.test(error.message) && /does not exist|schema cache/i.test(error.message)) {
+        const { email_round: _dropRound, ...rest } = body;
+        ({ error } = await tryInsert(rest));
+      }
+
       if (error) {
         throw new Error(`Supabase error: ${error.message}`);
       }
 
-      const postIdNum = Number(body['id_post']);
       if (Number.isInteger(postIdNum) && postIdNum > 0) {
         try {
           await this.supabase
@@ -300,33 +355,60 @@ export class OffresService {
         .map((row: any) => Number(row?.id_line ?? 0))
         .filter((id: number) => Number.isInteger(id) && id > 0);
 
+      // ── Build a map: postId → current email_round ────────────────────────
+      // When the scheduler sends a renewal email it increments email_round.
+      // We use this to ignore feedback/declines from previous rounds so they
+      // do not lock the form for the new round.
+      const postRoundMap = new Map<number, number>();
+      for (const row of posts ?? []) {
+        const idLine = Number(row?.id_line ?? 0);
+        if (Number.isInteger(idLine) && idLine > 0) {
+          postRoundMap.set(idLine, Number(row?.email_round ?? 1) || 1);
+        }
+      }
+
       let submittedIds = new Set<number>();
       if (eligiblePostIds.length > 0) {
+        // ── Check feedback_societe, filtering by email_round ────────────────
+        // Only feedback rows whose email_round matches (or exceeds) the post's
+        // current round count as "already submitted" for this round.
         const { data: feedbackRows, error: feedbackError } = await this.supabase
           .from('feedback_societe')
-          .select('id_post')
+          .select('id_post, email_round')
           .eq('id_soc', parsedSocieteId)
           .in('id_post', eligiblePostIds);
 
         if (feedbackError) {
-          // id_post column might not exist yet — treat as "no submissions" so the
-          // form opens; localStorage on the client serves as a fallback.
+          // id_post / email_round column might not exist yet — treat as no
+          // submissions so the form opens; localStorage is client-side fallback.
           // eslint-disable-next-line no-console
           console.warn('[OffresService] feedback_societe lookup skipped:', feedbackError.message);
         } else {
           submittedIds = new Set(
             (feedbackRows || [])
+              .filter((row: any) => {
+                const postId = Number(row?.id_post);
+                if (!Number.isInteger(postId) || postId <= 0) return false;
+                // Get the post's current round. Default to 1 if the column
+                // does not exist yet (both sides fall back to 1 → equal → counts).
+                const postRound = postRoundMap.get(postId) ?? 1;
+                const fbRound = Number(row?.email_round ?? 1) || 1;
+                // A feedback counts as "done for this round" only if it was
+                // submitted in the current round or a later one.
+                return fbRound >= postRound;
+              })
               .map((row: any) => Number(row?.id_post))
               .filter((id: number) => Number.isInteger(id) && id > 0),
           );
         }
 
-        // A post is also "done" when the société declined to give feedback
-        // (answered "Non, pas cette fois"). We keep that in a separate table
-        // so feedback_societe isn't polluted with empty rows.
+        // ── Check feedback_declined (same round filter as feedback_societe) ───
+        // Each decline is now tagged with email_round. Only a decline from the
+        // current round (or later) counts as "done". Old round-N declines do not
+        // block the round-N+1 feedback window.
         const { data: declinedRows, error: declinedError } = await this.supabase
           .from('feedback_declined')
-          .select('id_post')
+          .select('id_post, email_round')
           .eq('id_soc', parsedSocieteId)
           .in('id_post', eligiblePostIds);
 
@@ -336,7 +418,10 @@ export class OffresService {
         } else {
           for (const row of declinedRows || []) {
             const id = Number((row as any)?.id_post);
-            if (Number.isInteger(id) && id > 0) submittedIds.add(id);
+            if (!Number.isInteger(id) || id <= 0) continue;
+            const postRound = postRoundMap.get(id) ?? 1;
+            const declineRound = Number((row as any)?.email_round ?? 1) || 1;
+            if (declineRound >= postRound) submittedIds.add(id);
           }
         }
       }
@@ -349,6 +434,7 @@ export class OffresService {
           titre_poste: row?.['Titre du poste'] ?? row?.['titre_poste'] ?? 'Offre sans titre',
           date_creation: row?.date_creation ?? null,
           feedback_email_sent_at: row?.feedback_email_sent_at ?? null,
+          email_round: Number(row?.email_round ?? 1) || 1,
           submitted: submittedIds.has(idLine),
         };
       });

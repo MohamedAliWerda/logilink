@@ -195,22 +195,60 @@
                     </div>
                 </div>
                 <div class="chart-card">
-                    <div class="chart-head">Détail des statuts</div>
-                    <div class="chart-sub">Avec score d'employabilité pondéré</div>
-                    <ul class="statut-list">
-                        @for (item of employmentStatusRows; track item.label) {
-                        <li class="s-item">
-                            <span class="s-dot" [style.background]="item.color"></span>
-                            <span class="s-label">{{ item.label }}</span>
-                            <div class="s-bar-wrap">
-                                <div class="s-bar" [style.width.%]="item.percent" [style.background]="item.color"></div>
+                    <div class="chart-head">Satisfaction globale</div>
+                    <div class="chart-sub">Adéquation perçue poste / formation</div>
+
+                    <!-- Big star display -->
+                    <div class="sat-center">
+                        <div class="sat-stars">
+                            @for (i of starRange; track i) {
+                            <span class="sat-star" [class.sat-star-filled]="i <= satisfactionFilledStars">★</span>
+                            }
+                        </div>
+                        <div class="sat-avg">{{ satisfactionAverageText }} <span class="sat-avg-denom">/ 5</span></div>
+                        @if (satisfactionAverage > 0) {
+                        <div class="sat-lbl" [ngClass]="satisfactionToneClass">{{ satisfactionLabel }}</div>
+                        <div class="nps-count">{{ satisfactionRespondentsCount }} réponse{{ satisfactionRespondentsCount !== 1 ? 's' : '' }}</div>
+                        } @else {
+                        <div class="nps-count nps-count-empty">Aucune réponse enregistrée</div>
+                        }
+                    </div>
+
+                    <!-- Per-level distribution bars -->
+                    <div class="sat-distrib">
+                        @for (row of satisfactionDistribution; track row.stars) {
+                        <div class="sat-row">
+                            <div class="sat-row-stars">
+                                @for (i of starRange; track i) {
+                                <span class="sat-star-sm" [class.sat-star-sm-filled]="i <= row.stars">★</span>
+                                }
                             </div>
-                            <span class="s-pct">{{ item.percent }}%</span>
+                            <div class="sat-bar-wrap">
+                                <div class="sat-bar-fill"
+                                     [style.width.%]="row.percent"
+                                     [style.background]="satisfactionBarColor(row.stars)">
+                                </div>
+                            </div>
+                            <span class="sat-pct">{{ row.percent }}%</span>
+                        </div>
+                        }
+                    </div>
+
+                    <!-- Top sectors / companies that hired -->
+                    @if (topCompanies.length) {
+                    <div class="top-company-head">Top secteurs recruteurs</div>
+                    <ul class="top-company-list">
+                        @for (item of topCompanies; track item.name) {
+                        <li class="top-company-item">
+                            <span class="top-company-name">{{ item.name || '—' }}</span>
+                            <span class="top-company-badge">{{ item.count }}</span>
                         </li>
                         }
                     </ul>
+                    }
+
                     <div class="weighted-score-box">
-                        <span>Score pondéré global</span>
+                        <span>Score d'employabilité pondéré</span>
                         <strong>{{ weightedEmployabilityScore }}/100</strong>
                     </div>
                     <div class="last-update">Mis à jour : {{ dashboardLastUpdate }}</div>

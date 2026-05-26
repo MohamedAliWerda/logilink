@@ -94,42 +94,54 @@ export class RegisterEntreprise {
   }
 
   async onSubmit(): Promise<void> {
-    console.log('📋 onSubmit called');
+    this.formError = null;
+
     if (this.registerForm.invalid) {
-      console.log('📋 Form invalid');
       this.registerForm.markAllAsTouched();
-      this.formError = 'Veuillez remplir tous les champs obligatoires.';
+      // Identify which required fields are empty for a precise message
+      const missing: string[] = [];
+      if (!this.registerForm.get('nomEntreprise')?.value?.toString().trim()) missing.push('la dénomination sociale');
+      if (!this.registerForm.get('email')?.value?.toString().trim())         missing.push('l\'adresse e-mail');
+      if (!this.registerForm.get('telephone')?.value?.toString().trim())     missing.push('le téléphone');
+      if (!this.registerForm.get('password')?.value)                         missing.push('le mot de passe');
+      if (!this.registerForm.get('adresse')?.value?.toString().trim())       missing.push('l\'adresse');
+      if (!this.registerForm.get('description')?.value?.toString().trim())   missing.push('le secteur d\'activité');
+
+      if (missing.length > 0) {
+        this.formError = `Champ${missing.length > 1 ? 's' : ''} obligatoire${missing.length > 1 ? 's' : ''} manquant${missing.length > 1 ? 's' : ''} : ${missing.join(', ')}.`;
+      } else {
+        // Fields are present but contain invalid values (e.g. bad email format, short password)
+        this.formError = 'Veuillez corriger les erreurs indiquées avant de continuer.';
+      }
       this.cdr.detectChanges();
       return;
     }
 
-    this.formError = null;
     this.isSubmitting = true;
     this.cdr.detectChanges();
 
     const timeoutHandle = window.setTimeout(() => {
-      console.error('❌ Submit timed out after 15 seconds');
       this.isSubmitting = false;
-      this.formError = 'Délai d\'attente dépassé. Vérifiez votre connexion et réessayez.';
+      this.formError = 'La requête prend trop de temps. Vérifiez votre connexion et réessayez.';
+      this.cdr.detectChanges();
     }, 15000);
 
     try {
       const raw = this.registerForm.getRawValue();
-      // Normalize inputs to improve matching and storage
       const payload = {
         ...raw,
         email: (raw.email || '').toString().trim().toLowerCase(),
         nomEntreprise: (raw.nomEntreprise || '').toString().trim(),
         adresse: (raw.adresse || '').toString().trim(),
         description: (raw.description || '').toString().trim(),
-          // telephone: store with +216 prefix and formatted as "XX XXX XXX"
-          telephone: (function(r: any, self: any){
-            const v = (r || '').toString();
-            const digits = v.replace(/\D/g, '').slice(0,8);
-            const formatted = self.formatTelephoneDisplayFromDigits(digits);
-            return formatted ? formatted : '';
-          })(raw.telephone, this),
+        telephone: (function(r: any, self: any) {
+          const v = (r || '').toString();
+          const digits = v.replace(/\D/g, '').slice(0, 8);
+          const formatted = self.formatTelephoneDisplayFromDigits(digits);
+          return formatted ? formatted : '';
+        })(raw.telephone, this),
       };
+
       const conflict: any = await this.supabaseService.findConflictingSociete({
         nomEntreprise: payload.nomEntreprise,
         email: payload.email,
@@ -138,22 +150,28 @@ export class RegisterEntreprise {
 
       if (conflict) {
         clearTimeout(timeoutHandle);
-        const conflicts: string[] = [];
-        const norm = (s: any) => (s || '').toString().trim().toLowerCase();
-        if (conflict.email && norm(conflict.email) === norm(payload.email)) conflicts.push('adresse e-mail');
+        const norm      = (s: any) => (s || '').toString().trim().toLowerCase();
         const onlyDigits = (s: any) => (s || '').toString().replace(/\D/g, '');
-        if (conflict.telephone && onlyDigits(conflict.telephone) === onlyDigits(payload.telephone)) conflicts.push('téléphone');
-        if (conflict.denomination_sociale && norm(conflict.denomination_sociale) === norm(payload.nomEntreprise)) conflicts.push('dénomination sociale');
-        if (conflict.adresse && norm(conflict.adresse) === norm(payload.adresse)) conflicts.push('adresse');
-        if (conflict.secteur_activite && norm(conflict.secteur_activite) === norm(payload.description)) conflicts.push("secteur d'activité");
+        const conflicts: string[] = [];
 
-        const fieldList = conflicts.length ? conflicts.join(', ') : 'informations fournies';
-        this.formError = `ce compte existe déjà `;
+        if (conflict.email && norm(conflict.email) === norm(payload.email))
+          conflicts.push('adresse e-mail');
+        if (conflict.telephone && onlyDigits(conflict.telephone) === onlyDigits(payload.telephone))
+          conflicts.push('numéro de téléphone');
+        if (conflict.denomination_sociale && norm(conflict.denomination_sociale) === norm(payload.nomEntreprise))
+          conflicts.push('dénomination sociale');
+
+        this.formError = conflicts.length === 1
+          ? `Un compte avec cette ${conflicts[0]} existe déjà. Veuillez vous connecter ou utiliser des informations différentes.`
+          : conflicts.length > 1
+            ? `Un compte correspondant à ces informations existe déjà (${conflicts.join(', ')}). Veuillez vous connecter ou utiliser des informations différentes.`
+            : 'Un compte avec ces informations existe déjà. Veuillez vous connecter.';
+
         this.isSubmitting = false;
         this.cdr.detectChanges();
         return;
       }
-      
+
       await this.supabaseService.createSociete(payload);
       clearTimeout(timeoutHandle);
 
@@ -163,7 +181,6 @@ export class RegisterEntreprise {
       try { this.registerForm.disable(); } catch (e) { /* noop */ }
       this.cdr.detectChanges();
 
-      // Countdown then redirect
       const tick = window.setInterval(() => {
         this.redirectCountdown -= 1;
         this.cdr.detectChanges();
@@ -175,13 +192,15 @@ export class RegisterEntreprise {
 
     } catch (error: any) {
       clearTimeout(timeoutHandle);
-      console.error('❌ Error in onSubmit:', error);
-      const msg = error?.message ?? error?.error?.message ?? String(error);
-      const details = error?.details;
-      const hint = error?.hint;
-      const fullError = [msg, details, hint].filter(Boolean).join(' | ');
-      this.formError = fullError || 'Impossible d\'enregistrer la societe pour le moment. Verifiez la connexion et reessayez.';
-      console.log('❌ Form error set:', this.formError);
+      // Don't expose raw DB/server messages to the user
+      const serverMsg: string = error?.message ?? error?.error?.message ?? '';
+      if (serverMsg.toLowerCase().includes('duplicate') || serverMsg.toLowerCase().includes('unique')) {
+        this.formError = 'Un compte avec ces informations existe déjà. Veuillez vérifier votre e-mail ou téléphone.';
+      } else if (serverMsg.toLowerCase().includes('network') || !navigator.onLine) {
+        this.formError = 'Connexion impossible. Vérifiez votre connexion internet et réessayez.';
+      } else {
+        this.formError = 'Impossible de créer le compte pour le moment. Veuillez réessayer dans quelques instants.';
+      }
       this.isSubmitting = false;
       this.cdr.detectChanges();
     } finally {

@@ -58,11 +58,12 @@
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
                 <label for="email">Email</label>
                 <input id="email" formControlName="email"
-                    type="email" placeholder="Société@gmail.tn" />
+                    type="email" placeholder="Société@gmail.tn"
+                    [class.input-error]="emailError" />
                 <p *ngIf="emailError" class="field-error">{{ emailError }}</p>
 
                 <label for="password">Mot de passe</label>
-                <div class="password-field">
+                <div class="password-field" [class.input-error]="passwordError">
                     <input [type]="hidePassword ? 'password' : 'text'" formControlName="password"
                         placeholder="••••••••" aria-label="Mot de passe" />
                     <button type="button" (click)="togglePasswordVisibility()" class="toggle-password"

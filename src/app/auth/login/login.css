@@ -319,6 +319,20 @@ input:focus {
     font-weight: 600;
 }
 
+.field-error {
+    margin-top: 0.35rem;
+    margin-bottom: 0.25rem;
+    color: #d32f2f;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.input-error,
+input.input-error {
+    border-color: #d32f2f !important;
+    outline-color: #d32f2f;
+}
+
 .login-btn {
     background: #fca63a;
     color: #fff;

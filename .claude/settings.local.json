@@ -25,7 +25,11 @@
       "Bash(xargs grep -l \"ancien\\\\|progres\\\\|professionnel\\\\|AncienEtudiant\\\\|ancien_etudiant\")",
       "Bash(python3 *)",
       "Bash(curl *)",
-      "Bash(del *)"
+      "Bash(del *)",
+      "Bash(wait)",
+      "Bash(pip install *)",
+      "Bash(git ls-tree *)",
+      "Bash(git show *)"
     ]
   }
 }

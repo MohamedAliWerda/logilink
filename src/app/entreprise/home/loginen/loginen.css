@@ -327,6 +327,12 @@ input:focus {
     font-weight: 500;
 }
 
+.input-error,
+input.input-error {
+    border-color: #d32f2f !important;
+    outline-color: #d32f2f;
+}
+
 .auth-pending {
     margin-top: 0.75rem;
     color: #8a5f2e;

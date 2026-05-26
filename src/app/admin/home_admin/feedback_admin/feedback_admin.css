@@ -576,6 +576,134 @@ tbody td {
     color: var(--orange-dark);
 }
 
+.nps-count {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.01em;
+}
+
+.nps-count-empty {
+    color: #ef4444;
+    font-style: italic;
+}
+
+
+/* ── Satisfaction globale (star rating) ───────────────────────────────── */
+
+.sat-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 0 10px;
+}
+
+.sat-stars {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.sat-star {
+    font-size: 30px;
+    line-height: 1;
+    color: var(--border);
+    transition: color 0.2s;
+}
+
+.sat-star.sat-star-filled {
+    color: #f5a623;
+}
+
+.sat-avg {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+}
+
+.sat-avg-denom {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.sat-lbl {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin-top: 6px;
+    background: var(--orange-light);
+    color: var(--orange-dark);
+}
+
+.sat-lbl.tone-success,
+.sat-lbl.tone-good {
+    background: var(--green-light);
+    color: #0f6e56;
+}
+
+.sat-lbl.tone-warn {
+    background: var(--orange-light);
+    color: var(--orange-dark);
+}
+
+.sat-lbl.tone-danger {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.sat-distrib {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 12px 0 6px;
+}
+
+.sat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sat-row-stars {
+    display: flex;
+    gap: 1px;
+    min-width: 58px;
+}
+
+.sat-star-sm {
+    font-size: 11px;
+    color: var(--border);
+}
+
+.sat-star-sm.sat-star-sm-filled {
+    color: #f5a623;
+}
+
+.sat-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.sat-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    min-width: 2px;
+    transition: width 0.4s ease;
+}
+
+.sat-pct {
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 30px;
+    text-align: right;
+}
+
 .nps-lbl.tone-success,
 .nps-lbl.tone-good {
     background: var(--green-light);
@@ -632,6 +760,77 @@ tbody td {
     margin-top: 14px;
 }
 
+
+/* ── NPS stacked bar ─────────────────────────────────────────────────── */
+
+.nps-bar-track {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+    background: var(--bg);
+    gap: 1px;
+}
+
+.nps-bar-seg {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    min-width: 0;
+}
+
+
+/* ── Top sectors / companies list ────────────────────────────────────── */
+
+.top-company-head {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 14px 0 6px;
+}
+
+.top-company-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.top-company-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+}
+
+.top-company-item:last-child {
+    border-bottom: none;
+}
+
+.top-company-name {
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 72%;
+}
+
+.top-company-badge {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
 .company-kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -643,7 +842,12 @@ tbody td {
 .company-dashboard-panel {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 36px;
+    padding-bottom: 32px;
+}
+
+.tab-panel.active.company-dashboard-panel {
+    display: flex;
 }
 
 .company-dashboard-header {
@@ -653,7 +857,7 @@ tbody td {
     gap: 10px;
     flex-wrap: wrap;
     margin-top: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 .company-dashboard-header h3 {
@@ -684,52 +888,54 @@ tbody td {
 .company-score-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 0;
 }
 
 .company-score-card {
-    min-height: 92px;
-    padding: 10px 12px;
+    min-height: 106px;
+    padding: 16px 18px;
 }
 
 .company-score-card .kpi-k {
-    font-size: 9px;
-    margin-bottom: 4px;
+    font-size: 10px;
+    margin-bottom: 6px;
 }
 
 .company-score-card .kpi-v {
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .company-score-card .kpi-s {
     font-size: 10px;
+    margin-top: 4px;
 }
 
 .company-visual-grid {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
-    gap: 12px;
+    gap: 20px;
 }
 
 .company-card-wide,
 .company-card-side {
-    min-height: 250px;
+    min-height: 270px;
+    padding: 24px;
 }
 
 .company-competence-list,
 .company-gap-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 14px;
+    margin-top: 16px;
 }
 
 .company-competence-row,
 .company-gap-row {
     display: grid;
     grid-template-columns: 190px minmax(0, 1fr) 40px;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
 }
 
@@ -795,8 +1001,8 @@ tbody td {
 .company-profile-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 10px;
+    gap: 12px;
+    margin-top: 16px;
 }
 
 .company-profile-pill {
@@ -834,14 +1040,14 @@ tbody td {
 }
 
 .company-subhead {
-    margin-top: 14px;
+    margin-top: 28px;
 }
 
 .company-recruit-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 8px;
-    margin-top: 8px;
+    gap: 12px;
+    margin-top: 12px;
 }
 
 .company-recruit-pill {
@@ -864,7 +1070,7 @@ tbody td {
 }
 
 .company-insight {
-    margin-top: 10px;
+    margin-top: 18px;
     border-radius: 10px;
     background: #ecfdf5;
     border: 1px solid #d1fae5;
@@ -875,7 +1081,8 @@ tbody td {
 }
 
 .company-satisfaction-chart {
-    height: 210px;
+    height: 220px;
+    margin-top: 8px;
 }
 
 .chart-sub b {
