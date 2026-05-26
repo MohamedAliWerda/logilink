@@ -2621,7 +2621,8 @@ export class CvSubmissionService {
   async calculateAtsScore(payload: any, authId?: string): Promise<AtsScoreResult> {
     const payloadForMatching = await this.enrichPayloadForMatching(payload, authId);
     const resumeText = this.buildResumeText(payloadForMatching);
-    const referenceKeywords = await this.loadReferenceKeywordsSafely();
+    const selectedMetierId = this.normalizeMetierId(payloadForMatching?.metierId ?? payload?.metierId);
+    const referenceKeywords = await this.loadReferenceKeywordsSafely(selectedMetierId);
 
     try {
       const prompt = this.buildScorePrompt(resumeText, referenceKeywords);
@@ -2702,26 +2703,18 @@ export class CvSubmissionService {
     this.logger.error(`Gemini ${provider.name} provider disabled: ${reason}`);
   }
 
-  private async loadReferenceKeywordsSafely(): Promise<string[]> {
+  private async loadReferenceKeywordsSafely(metierId?: string): Promise<string[]> {
     try {
-      const keywords = await this.loadReferenceKeywords();
+      const keywords = await this.loadReferenceKeywords(metierId);
       if (keywords.length > 0) {
         return keywords;
       }
-      this.logger.warn('Reference keywords from database are empty; using defaults only.');
+      this.logger.warn(`Reference keywords are empty for metierId=${metierId ?? 'n/a'}.`);
     } catch (err: any) {
-      this.logger.error(`Failed to load database keywords, using defaults only: ${err?.message ?? err}`);
+      this.logger.error(`Failed to load metier-specific keywords: ${err?.message ?? err}`);
     }
 
-    return this.defaultReferenceKeywords();
-  }
-
-  private defaultReferenceKeywords(): string[] {
-    return [
-      'logistique', 'transport', 'supply', 'douane', 'wms', 'tms', 'sap', 'incoterms', 'excel', 'powerbi',
-      'inventaire', 'entrepot', 'flux', 'optimisation', 'planification', 'approvisionnement', 'distribution',
-      'lean', 'kpi', 'analyse', 'operation', 'procurement', 'forecast', 'service', 'qualite', 'securite',
-    ];
+    return [];
   }
 
   private computeFallbackScore(
@@ -2947,12 +2940,26 @@ Respond ONLY in this exact format with this exact section header:
 `.trim();
   }
 
-  private async loadReferenceKeywords(): Promise<string[]> {
+  private async loadReferenceKeywords(metierId?: string): Promise<string[]> {
     const [competences, metiers, domaines] = await Promise.all([
       this.refCompetanceService.getReferentielCompetences(),
       this.refCompetanceService.getMetiers(),
       this.refCompetanceService.getDomaines(),
     ]);
+
+    const normalizedMetierId = this.normalizeMetierId(metierId);
+    if (!normalizedMetierId) {
+      return [];
+    }
+
+    const selectedMetier = metiers.find((metier: any) => (
+      this.normalizeMetierId(metier?._id ?? metier?.raw?._id ?? metier?.raw?.id) === normalizedMetierId
+    ));
+
+    if (!selectedMetier) {
+      this.logger.warn(`No metier found for metierId=${normalizedMetierId}; returning empty ATS keyword set.`);
+      return [];
+    }
 
     const keywordSet = new Set<string>();
     const addText = (value: unknown) => {
@@ -2962,24 +2969,44 @@ Respond ONLY in this exact format with this exact section header:
       }
     };
 
-    for (const c of competences as any[]) {
-      addText(c?.competence);
-      addText(c?.categorie);
-      addText(c?.domaine);
+    addText(selectedMetier?.nom_metier ?? selectedMetier?.nom);
+    addText(selectedMetier?.domaine);
+
+    const selectedCompetenceIds = this.parseMetierIds(selectedMetier?.raw?.competences ?? selectedMetier?.competences);
+    const competenceLookup = new Map<string, any>(
+      (competences as any[]).map((competence) => [this.normalizeMetierId(competence?.code ?? competence?._id), competence]),
+    );
+
+    for (const competenceId of selectedCompetenceIds) {
+      const competence = competenceLookup.get(competenceId);
+      if (!competence) continue;
+      addText(competence?.competence);
+      addText(competence?.categorie);
+      addText(competence?.domaine);
     }
 
-    for (const m of metiers as any[]) {
-      addText(m?.nom_metier ?? m?.nom);
-      addText(m?.domaine);
-    }
-
+    const domainLookup = new Map<string, string>();
     for (const d of domaines as any[]) {
-      addText(d?.nom_domaine ?? d?.nom);
+      const domainName = d?.nom_domaine ?? d?.nom;
+      const keys = [d?._id, d?.id_domaine, d?.domaine_id, d?.code_domaine, d?.nom_domaine, d?.nom]
+        .filter((value) => value !== undefined && value !== null)
+        .map((value) => this.normalizeMetierId(value));
+
+      for (const key of keys) {
+        if (!key) continue;
+        domainLookup.set(key, domainName);
+      }
     }
 
-    const defaults = ['logistique', 'transport', 'supply', 'douane', 'wms', 'tms', 'sap', 'incoterms', 'excel', 'powerbi'];
-    for (const d of defaults) {
-      keywordSet.add(d);
+    const selectedDomainId = this.normalizeMetierId(
+      selectedMetier?.raw?.domaine_id
+      ?? selectedMetier?.raw?.id_domaine
+      ?? selectedMetier?.raw?.domaineId
+      ?? selectedMetier?.raw?.domain_id,
+    );
+
+    if (selectedDomainId && domainLookup.has(selectedDomainId)) {
+      addText(domainLookup.get(selectedDomainId));
     }
 
     return Array.from(keywordSet).slice(0, 350);
