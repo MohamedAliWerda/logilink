@@ -29,7 +29,13 @@
       "Bash(wait)",
       "Bash(pip install *)",
       "Bash(git ls-tree *)",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(gh api *)",
+      "PowerShell(gh api *)",
+      "PowerShell(Test-Path *)",
+      "Bash(pg_dump --version)",
+      "Bash(psql --version)",
+      "PowerShell(Get-Command *)"
     ]
   }
 }
