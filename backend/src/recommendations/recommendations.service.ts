@@ -691,6 +691,65 @@ export class RecommendationsService {
       if (tErr) this.logger.warn(`confirmed targets upsert failed: ${tErr.message}`);
     }
 
+    // Remove redundant confirmed targets for the same student when this recommendation
+    // is approved for the student's target métier. This prevents duplicate active
+    // recommendations coming from "other métier" for the same gap/cert while keeping
+    // historical confirmed recommendation rows intact so they can be re-applied later
+    // if the student removes the target métier.
+    try {
+      if (confirmedTargets.length) {
+        const gapLabel = confirmed.gap_label ?? null;
+        const certTitle = confirmed.cert_title ?? null;
+        const currentMetier = confirmed.metier ?? null;
+
+        // For each confirmed target (student), find other confirmed recommendations
+        // that match by gap_label OR cert_title, belong to a different metier, and
+        // remove the confirmed target link for that student.
+        for (const t of confirmedTargets) {
+          const authId = t.auth_id;
+          const { data: allConfirmed, error: fetchErr } = await this.supabase
+            .from('ai_confirmed_recommendations')
+            .select('recommendation_id,metier,gap_label,cert_title')
+            .neq('recommendation_id', row.id)
+            .limit(2000);
+
+          if (fetchErr) {
+            this.logger.warn(`finding matching confirmed recommendations failed: ${fetchErr.message}`);
+            continue;
+          }
+
+          const toRemoveIds: string[] = [];
+          for (const m of (allConfirmed ?? [])) {
+            const mid = String(m?.recommendation_id ?? '').trim();
+            const mMetier = String(m?.metier ?? '').trim();
+            const mgap = String(m?.gap_label ?? '').trim();
+            const mcert = String(m?.cert_title ?? '').trim();
+            if (!mid) continue;
+            // Only remove if metier differs from current approved metier
+            if (currentMetier && mMetier && this.normalizeText(currentMetier) === this.normalizeText(mMetier)) {
+              continue;
+            }
+            // Remove if gap_label or cert_title matches the current confirmed recommendation
+            if ((gapLabel && mgap && this.normalizeText(gapLabel) === this.normalizeText(mgap))
+              || (certTitle && mcert && this.normalizeText(certTitle) === this.normalizeText(mcert))) {
+              toRemoveIds.push(mid);
+            }
+          }
+
+          if (toRemoveIds.length) {
+            const { error: delErr } = await this.supabase
+              .from('ai_confirmed_recommendation_targets')
+              .delete()
+              .in('recommendation_id', toRemoveIds)
+              .eq('auth_id', authId);
+            if (delErr) this.logger.warn(`failed removing redundant confirmed targets: ${delErr.message}`);
+          }
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`cleanup of redundant confirmed targets failed: ${err?.message ?? err}`);
+    }
+
     const { error: statusErr } = await this.supabase
       .from('ai_recommendations')
       .update({ status: 'approved', updated_at: new Date().toISOString() })

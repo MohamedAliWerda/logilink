@@ -333,18 +333,12 @@ export class OffresService {
         throw new Error('societeId invalide');
       }
 
-      const sixMonthsAgoIso = (() => {
-        const d = new Date();
-        d.setMonth(d.getMonth() - 6);
-        return d.toISOString();
-      })();
-
       const { data: posts, error: postsError } = await this.supabase
         .from('post')
         .select('*')
         .eq('id', parsedSocieteId)
         .eq('is_archived', false)
-        .or(`date_creation.lte.${sixMonthsAgoIso},feedback_email_sent_at.not.is.null`)
+        .not('feedback_email_sent_at', 'is', null)
         .order('id_line', { ascending: false });
 
       if (postsError) {
@@ -837,7 +831,8 @@ export class OffresService {
             : await this.getScoreEmployabilite(idEtudiant);
 
         const post = postsById.get(idPost);
-        const poste = post?.titre_poste || String(row?.poste ?? row?.titre_poste ?? 'Poste').trim();
+        if (!post) continue;
+        const poste = post.titre_poste || String(row?.poste ?? row?.titre_poste ?? 'Poste').trim();
 
         candidatures.push({
           id: String(row?.id_line ?? `${idEtudiant}-${idPost}`),
@@ -993,7 +988,8 @@ export class OffresService {
     const { data: posts, error } = await this.supabase
       .from('post')
       .select('*')
-      .eq('id', societeId);
+      .eq('id', societeId)
+      .eq('is_archived', false);
 
     if (error) {
       throw new Error(`Supabase error: ${error.message}`);

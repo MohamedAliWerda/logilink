@@ -1099,7 +1099,10 @@ def generate_recommendations_pipeline(job_id: str, triggered_by: Optional[str] =
         df_agg, cluster_summaries, n_students_total = load_and_cluster_gaps(st_model)
         total = len(df_agg)
         LOGGER.info("Job %s: %d aggregated gaps / %d clusters / %d students",
-                    job_id, total, len(cluster_summaries), n_students_total)
+                job_id, total, len(cluster_summaries), n_students_total)
+
+        # progress counter (number of clusters processed so far)
+        processed = 0
 
         if total == 0:
             auto_confirmed_targets_synced = sync_confirmed_targets_for_approved_recommendations()
@@ -1140,6 +1143,7 @@ def generate_recommendations_pipeline(job_id: str, triggered_by: Optional[str] =
                     "total": total,
                     "clusters": len(cluster_summaries),
                     "n_students": n_students_total,
+                    "done": processed,
                 },
             }],
             on_conflict="id",
@@ -1189,6 +1193,8 @@ def generate_recommendations_pipeline(job_id: str, triggered_by: Optional[str] =
                     merged = {**fallback, **{k: v for k, v in llm_reco.items() if v}}
                     cluster_recos[gap["cluster_id"]] = merged
                 LOGGER.info("Job %s %s done (%d recos)", job_id, batch_label, len(parsed_list))
+                # mark these clusters as processed for UI progress
+                processed += len(batch)
             except LLMDailyCapExhausted as exc:
                 LOGGER.warning("Job %s daily cap hit: %s — switching remaining batches to RAG-only",
                                job_id, exc)
@@ -1218,6 +1224,7 @@ def generate_recommendations_pipeline(job_id: str, triggered_by: Optional[str] =
                             "n_students": n_students_total,
                             "gemini_done": batch_start + len(batch),
                             "gemini_total": len(llm_clusters),
+                            "done": processed,
                         },
                     }],
                     on_conflict="id",
@@ -1233,13 +1240,48 @@ def generate_recommendations_pipeline(job_id: str, triggered_by: Optional[str] =
             )
             cluster_recos[gap["cluster_id"]] = rag_only_reco(gap, rag)
             rag_only_count += 1
+            processed += 1
+
+            if processed % 10 == 0:
+                try:
+                    supabase_upsert(
+                        "recommendation_jobs",
+                        [{
+                            "id": job_id,
+                            "stats": {
+                                "stage": "generating",
+                                "total": total,
+                                "done": processed,
+                            },
+                        }],
+                        on_conflict="id",
+                    )
+                except Exception:
+                    pass
 
         # Fan-out: one DB row per aggregated gap (sharing its cluster's reco)
         now_iso = _iso_now()
         reco_rows: list[dict[str, Any]] = []
         target_rows: list[dict[str, Any]] = []
 
+        # Build a set of normalized competences present in TARGET_METIER so we
+        # avoid producing redundant OTHER_METIER recommendations for the same
+        # competence. This keeps OTHER_METIER suggestions available in the DB
+        # (history preserved) but prevents duplicates in the active generated
+        # run when a target métier already covers the same gap.
+        target_competences = {
+            _normalize_text(r) for r in df_agg[df_agg["bucket"] == "TARGET_METIER"]["competence_name"].astype(str).tolist()
+        }
+        skipped_other_dups = 0
+
         for _, row in df_agg.iterrows():
+            # Skip OTHER_METIER rows when the same competence is already present
+            # as a TARGET_METIER recommendation in this run.
+            if row.get("bucket") == "OTHER_METIER":
+                comp_norm = _normalize_text(row.get("competence_name") or "")
+                if comp_norm and comp_norm in target_competences:
+                    skipped_other_dups += 1
+                    continue
             cid = int(row["cluster_id"])
             reco = cluster_recos.get(cid, {})
             rec_id = build_recommendation_id(row["bucket"], row["metier_name"], row["competence_name"])
@@ -1399,6 +1441,7 @@ def generate_recommendations_pipeline(job_id: str, triggered_by: Optional[str] =
             "pruned_stale_targets": pruned_targets,
             "n_students": n_students_total,
             "clusters": len(cluster_summaries),
+            "done": total,
             "gemini_calls": gemini_calls,
             "rag_only": rag_only_count,
             "elapsed_sec": elapsed,
