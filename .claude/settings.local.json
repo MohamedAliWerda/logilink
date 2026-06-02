@@ -35,7 +35,26 @@
       "PowerShell(Test-Path *)",
       "Bash(pg_dump --version)",
       "Bash(psql --version)",
-      "PowerShell(Get-Command *)"
+      "PowerShell(Get-Command *)",
+      "PowerShell(python --version; python -m pip --version)",
+      "PowerShell(py *)",
+      "PowerShell(python -m venv \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\matching_service\\\\.venv\")",
+      "PowerShell(python -m venv \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\recommendation_service\\\\.venv\")",
+      "PowerShell(pip install *)",
+      "PowerShell(& \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\matching_service\\\\.venv\\\\Scripts\\\\pip.exe\" install -r \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\matching_service\\\\requirements.txt\" 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\recommendation_service\\\\.venv\\\\Scripts\\\\pip.exe\" install -r \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\recommendation_service\\\\requirements.txt\" 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\matching_service\\\\.venv\\\\Scripts\\\\pip.exe\" install -r \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\matching_service\\\\requirements.txt\" --quiet 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\MSI\\\\Desktop\\\\Nouveau dossier \\(6\\)\\\\logilinkk\\\\matching_service\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import fastapi, uvicorn, numpy, pydantic; print\\('OK'\\)\")",
+      "PowerShell(Start-Sleep -Seconds 5; try { \\(Invoke-WebRequest -Uri \"http://localhost:8001/health\" -TimeoutSec 5\\).Content } catch { \"Not up yet: $_\" })",
+      "PowerShell(\\(Invoke-WebRequest -Uri \"http://localhost:8001/health\" -TimeoutSec 10\\).Content)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:8001/health\" -TimeoutSec 10 -UseBasicParsing | Select-Object -ExpandProperty Content)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:8002/health\" -TimeoutSec 10 -UseBasicParsing | Select-Object -ExpandProperty Content)",
+      "Bash(\".venv/Scripts/python.exe\" -c \"from sentence_transformers import SentenceTransformer; m = SentenceTransformer\\('paraphrase-multilingual-MiniLM-L12-v2'\\); print\\('MODEL LOADED OK'\\); print\\(m.encode\\(['test phrase']\\).shape\\)\")",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(git log *)",
+      "Bash(xargs grep -l \"Gaps\\\\|gaps\\\\|RefCompetance\\\\|ref_competance\")"
     ]
   }
 }

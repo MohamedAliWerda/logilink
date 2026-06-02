@@ -23,8 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 DEFAULT_MODEL_NAME = os.getenv("BERT_MODEL_NAME", "paraphrase-multilingual-MiniLM-L12-v2")
 FALLBACK_MODEL_NAME = "lexical-hash-embedding"
-DEFAULT_THRESHOLD = float(os.getenv("MATCH_THRESHOLD", "0.72"))
-STATUS_MATCH_THRESHOLD = 0.60
+MATCH_THRESHOLD = float(os.getenv("STATUS_MATCH_THRESHOLD", "0.80"))
 DEFAULT_NIVEAU_WEIGHT = 0.50
 NIVEAU_WEIGHTS = {
     "avancé": 1.00,
@@ -51,7 +50,7 @@ class ReferenceCompetence(BaseModel):
 
 class AnalyzeRequest(BaseModel):
     cv_submission_id: str | None = None
-    match_threshold: float = Field(default=DEFAULT_THRESHOLD, ge=0.0, le=1.0)
+    match_threshold: float = Field(default=MATCH_THRESHOLD, ge=0.0, le=1.0)
     student_skills: list[StudentSkill]
     reference_competences: list[ReferenceCompetence]
 
@@ -83,6 +82,7 @@ class MatchGapEntry(BaseModel):
     raw_similarity_score: float | None = None
     similarity_score: float
     status: str
+    match_tier: str = "gap"
 
 
 class AnalysisSummary(BaseModel):
@@ -107,6 +107,22 @@ class AnalyzeResponse(BaseModel):
 app = FastAPI(title="Competence Matching Service", version="1.0.0")
 
 
+@app.on_event("startup")
+def _warm_model() -> None:
+    """Load the BERT model at boot so the first /analyze request is fast.
+
+    Lazy loading meant the very first request triggered the (slow) model
+    download/load. If that exceeded the caller's timeout, the backend silently
+    fell back to a lexical token-overlap algorithm, producing wrong scores.
+    Warming here moves that cost to service boot, before any request arrives.
+    """
+    model = get_model()
+    if model is None:
+        LOGGER.warning("Startup warm-up: BERT model unavailable, using lexical fallback embeddings.")
+    else:
+        LOGGER.info("Startup warm-up complete: %s ready.", DEFAULT_MODEL_NAME)
+
+
 def _normalize_text(value: Any) -> str:
     text = str(value or "").strip().lower()
     if not text:
@@ -123,14 +139,17 @@ def _safe_label(value: Any, fallback: str) -> str:
 
 
 def _resolve_niveau_weight(niveau: Any) -> float:
+    # _normalize_text already strips accents (avancé -> avance), so the lookup
+    # keywords here must be accent-free too — otherwise every level silently
+    # fell through to DEFAULT_NIVEAU_WEIGHT, halving "Avancé" scores.
     normalized = _normalize_text(niveau)
     if not normalized:
         return DEFAULT_NIVEAU_WEIGHT
 
-    if "avancé" in normalized or "expert" in normalized:
+    if "avance" in normalized or "expert" in normalized:
         return NIVEAU_WEIGHTS["avancé"]
 
-    if "débutant" in normalized:
+    if "debutant" in normalized or "notions" in normalized:
         return NIVEAU_WEIGHTS["débutant"]
 
     if "intermediaire" in normalized:
@@ -194,8 +213,7 @@ def _build_similarity_matrix(
 
 
 def _analyze(payload: AnalyzeRequest) -> AnalyzeResponse:
-    threshold = payload.match_threshold
-    status_threshold = STATUS_MATCH_THRESHOLD
+    status_threshold = MATCH_THRESHOLD
 
     student_skills = [s for s in payload.student_skills if _normalize_text(s.nom)]
     if not payload.reference_competences:
@@ -262,8 +280,10 @@ def _analyze(payload: AnalyzeRequest) -> AnalyzeResponse:
             niveau_weight=round(best_weight, 2),
             raw_similarity_score=round(best_raw_score, 4),
             similarity_score=round(best_weighted_score, 4),
-            # Match/gap decision uses a fixed 60% raw similarity cut-off.
-            status="match" if best_raw_score >= status_threshold else "gap",
+            # Covered (match) when the level-weighted similarity — the score the
+            # student actually sees — clears the cut-off; below it is a gap.
+            status="match" if best_weighted_score >= status_threshold else "gap",
+            match_tier="match" if best_weighted_score >= status_threshold else "gap",
         )
 
         if entry.status == "match":
@@ -289,10 +309,10 @@ def _analyze(payload: AnalyzeRequest) -> AnalyzeResponse:
 
         max_per_ref_raw = sim_met_raw.max(axis=0) if n_comp > 0 else np.array([])
         max_per_ref_weighted = sim_met_weighted.max(axis=0) if n_comp > 0 else np.array([])
-        matched_count = int((max_per_ref_raw >= status_threshold).sum()) if max_per_ref_raw.size else 0
+        matched_count = int((max_per_ref_weighted >= status_threshold).sum()) if max_per_ref_weighted.size else 0
 
-        # Coverage percentage is level-aware so students with same skills but lower niveaux diverge.
-        coverage_pct = round(float(max_per_ref_weighted.mean()) * 100, 1) if max_per_ref_weighted.size else 0.0
+        matched_sum = float(max_per_ref_weighted[max_per_ref_weighted >= status_threshold].sum()) if max_per_ref_weighted.size else 0.0
+        coverage_pct = round(matched_sum / n_comp * 100, 1) if n_comp > 0 else 0.0
         avg_score = round(float(max_per_ref_raw.mean()), 4) if max_per_ref_raw.size else 0.0
 
         top_skills: list[TopSkill] = []
@@ -336,7 +356,7 @@ def _analyze(payload: AnalyzeRequest) -> AnalyzeResponse:
     return AnalyzeResponse(
         cv_submission_id=payload.cv_submission_id,
         model_name=DEFAULT_MODEL_NAME if get_model() is not None else FALLBACK_MODEL_NAME,
-        threshold=threshold,
+        threshold=MATCH_THRESHOLD,
         summary=AnalysisSummary(
             n_skills=len(cv_phrases),
             n_matches=n_matches,

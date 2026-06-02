@@ -73,6 +73,8 @@ type MatchingGapEntry = {
   bestCvNiveau: string;
   similarityScore: number;
   status: 'match' | 'gap';
+  // 'strong' (>= strong cut-off) | 'partial' (covered but below strong) | 'gap'
+  matchTier: 'strong' | 'partial' | 'gap';
 };
 
 type MatchingStudentSkillInput = {
@@ -163,8 +165,9 @@ export class CvSubmissionService {
   private static readonly DEFAULT_EMPLOYABILITY_TIMEOUT_MS = 120_000;
   private static readonly WINDOWS_PYTHON_FALLBACKS = ['py', 'python', 'python3'];
   private static readonly POSIX_PYTHON_FALLBACKS = ['python3', 'python'];
-  private static readonly MATCHING_ANALYSIS_VERSION = 'v4-traceable-persistence';
+  private static readonly MATCHING_ANALYSIS_VERSION = 'v9-strict-80-threshold';
   private static readonly MATCH_STATUS_THRESHOLD = 0.60;
+  private static readonly STRONG_MATCH_THRESHOLD = 0.80;
   private static readonly MAX_MATCHING_GAPS = 5000;
   private static readonly AUTO_SKILL_CONTEXT = '__auto_generated_from_notes__';
 
@@ -790,6 +793,13 @@ export class CvSubmissionService {
     if (normalized === 'Débutant' || normalized === 'Notions') return 0.2;
     if (normalized === 'Intermediaire') return 0.5;
     return 0.5;
+  }
+
+  // Two-tier coverage: a covered competence is 'strong' at/above the strong
+  // cut-off, otherwise 'partial'; non-covered competences are 'gap'.
+  private resolveMatchTier(status: 'match' | 'gap', score: number): 'strong' | 'partial' | 'gap' {
+    if (status !== 'match') return 'gap';
+    return Number(score) >= CvSubmissionService.STRONG_MATCH_THRESHOLD ? 'strong' : 'partial';
   }
 
   private dedupeSkillList<T extends { nom: string; niveau: string; metierIds?: string[] }>(skills: T[]): T[] {
@@ -1970,8 +1980,12 @@ export class CvSubmissionService {
         bestCvSkill: bestSkillName,
         bestCvNiveau: bestSkillNiveau,
         similarityScore: Number(bestScore.toFixed(4)),
-        // Match/gap decision uses a fixed 60% raw similarity cut-off.
-        status: bestRawScore >= statusThreshold ? 'match' : 'gap',
+        // Covered (match) when the level-weighted score clears the cut-off.
+        status: bestScore >= statusThreshold ? 'match' : 'gap',
+        matchTier: this.resolveMatchTier(
+          bestScore >= statusThreshold ? 'match' : 'gap',
+          Number(bestScore.toFixed(4)),
+        ),
       };
 
       if (entry.status === 'match') {
@@ -1996,7 +2010,7 @@ export class CvSubmissionService {
     const metierRanking: MatchingMetierRankingEntry[] = [];
     for (const [metier, bucket] of groupedByMetier.entries()) {
       const nCompetences = bucket.entries.length;
-      const matched = bucket.entries.filter((entry) => entry.rawScore >= statusThreshold).length;
+      const matched = bucket.entries.filter((entry) => entry.score >= statusThreshold).length;
       const coveragePct = nCompetences > 0
         ? Number((bucket.entries.reduce((sum, entry) => sum + entry.score, 0) / nCompetences * 100).toFixed(1))
         : 0;
@@ -2118,6 +2132,9 @@ export class CvSubmissionService {
 
     const mapGapEntry = (raw: unknown): MatchingGapEntry => {
       const row = (raw ?? {}) as Record<string, unknown>;
+      const similarityScore = Number(toNumber(row.similarity_score ?? row.similarityScore, 0).toFixed(4));
+      const status: 'match' | 'gap' =
+        String(row.status ?? '').trim().toLowerCase() === 'match' ? 'match' : 'gap';
       return {
         refCompetence: String(row.ref_competence ?? row.refCompetence ?? '').trim(),
         refMetier: String(row.ref_metier ?? row.refMetier ?? '').trim(),
@@ -2126,15 +2143,16 @@ export class CvSubmissionService {
         refMotsCles: String(row.ref_mots_cles ?? row.refMotsCles ?? '').trim(),
         bestCvSkill: String(row.best_cv_skill ?? row.bestCvSkill ?? '').trim(),
         bestCvNiveau: String(row.best_cv_niveau ?? row.bestCvNiveau ?? '').trim(),
-        similarityScore: Number(toNumber(row.similarity_score ?? row.similarityScore, 0).toFixed(4)),
-        status: String(row.status ?? '').trim().toLowerCase() === 'match' ? 'match' : 'gap',
+        similarityScore,
+        status,
+        matchTier: this.resolveMatchTier(status, similarityScore),
       };
     };
 
     const metierRanking = rawMetierRanking.map((entry: unknown) => mapRankingEntry(entry));
     const topMetier = rawTopMetier ? mapRankingEntry(rawTopMetier) : null;
 
-    return this.normalizeMetierRankingCoverage({
+    return {
       cvSubmissionId,
       selectedMetierId,
       generatedAt: String(payload?.generatedAt ?? payload?.generated_at ?? new Date().toISOString()).trim(),
@@ -2151,7 +2169,7 @@ export class CvSubmissionService {
       matches: rawMatches.map((entry: unknown) => mapGapEntry(entry)),
       gaps: rawGaps.map((entry: unknown) => mapGapEntry(entry)),
       topMetierGaps: rawTopMetierGaps.map((entry: unknown) => mapGapEntry(entry)),
-    });
+    };
   }
 
   private isMissingMatchingTableError(error: any): boolean {
@@ -2561,10 +2579,7 @@ export class CvSubmissionService {
       analysis,
       analysisId,
       analysisFingerprint,
-      metierScores: this.normalizeTraceMetierCoverageRows(
-        Array.isArray(metierScores) ? metierScores : [],
-        Array.isArray(competenceResults) ? competenceResults : [],
-      ),
+      metierScores: Array.isArray(metierScores) ? metierScores : [],
       competenceResults: Array.isArray(competenceResults) ? competenceResults : [],
     };
   }

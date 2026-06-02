@@ -41,7 +41,9 @@ export class Matching implements OnInit {
   targetMetierLabel = '';
   allGapsMetierFilter = '';
   private readonly matchStatusThreshold = 0.6;
-  readonly referentielSize = 158;
+  // Fallback used only before the analysis has loaded. Once analysis is in,
+  // referentielSize is derived from the data (see the getter below).
+  private readonly referentielSizeFallback = 158;
   private metierLookupLoaded = false;
   private readonly metierLabelById = new Map<string, string>();
 
@@ -319,11 +321,7 @@ export class Matching implements OnInit {
         return {
           metier: row.metierName,
           domaine: row.domaineName,
-          coveragePct: this.computeCoveragePctFromMatchedSimilarity(
-            matchedCompetences,
-            row.nCompetences,
-            row.coveragePct,
-          ),
+          coveragePct: this.coveragePercent(row.coveragePct),
           matched: matchedCompetences.length,
           nCompetences: row.nCompetences,
           avgScore: row.avgScore,
@@ -344,11 +342,7 @@ export class Matching implements OnInit {
       return {
         metier: entry.metier,
         domaine: entry.domaine,
-        coveragePct: this.computeCoveragePctFromMatchedSimilarity(
-          matchedCompetences,
-          entry.nCompetences,
-          entry.coveragePct,
-        ),
+        coveragePct: this.coveragePercent(entry.coveragePct),
         matched: matchedCompetences.length,
         nCompetences: entry.nCompetences,
         avgScore: entry.avgScore,
@@ -537,14 +531,32 @@ export class Matching implements OnInit {
     return this.metierCoveragePct(this.topMetierSummary);
   }
 
+  // Real size of the ISGIS referential = every reference competence is classified
+  // as exactly one match OR one gap, so the total analyzed is nMatches + nGaps.
+  // Hardcoding a magic number (158) made the denominators and coverage % wrong
+  // whenever liste_competences held a different number of rows, and stopped
+  // match% + gap% from summing to 100%.
+  get referentielSize(): number {
+    const summary = this.analysis?.summary;
+    if (summary) {
+      const total = Number(summary.nMatches ?? 0) + Number(summary.nGaps ?? 0);
+      if (total > 0) return total;
+    }
+    return this.referentielSizeFallback;
+  }
+
   get matchCoveragePct(): number {
+    const size = this.referentielSize;
+    if (size <= 0) return 0;
     const n = Number(this.analysis?.summary.nMatches ?? 0);
-    return Math.round((n / this.referentielSize) * 100);
+    return Math.round((n / size) * 100);
   }
 
   get gapPct(): number {
+    const size = this.referentielSize;
+    if (size <= 0) return 0;
     const n = Number(this.analysis?.summary.nGaps ?? 0);
-    return Math.round((n / this.referentielSize) * 100);
+    return Math.round((n / size) * 100);
   }
 
   get criticalGapsCount(): number {

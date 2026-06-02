@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { RefCompetanceModule } from '../ref_competance/ref_competance.module';
 import { AncienEtudiantsController } from './ancien-etudiants.controller';
 import { AncienEtudiantsService } from './ancien-etudiants.service';
 import { GoogleFormController } from './google-form.controller';
@@ -11,7 +12,7 @@ import { DashboardService } from './dashboard.service';
 import { DashboardStatsService } from './dashboard-stats.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, RefCompetanceModule],
   controllers: [
     AncienEtudiantsController,
     GoogleFormController,

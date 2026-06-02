@@ -20,7 +20,6 @@
                 </select>
             </label>
 
-            <button class="btn-export" type="button" (click)="loadDashboard()">Rafraîchir ↻</button>
         </div>
     </div>
 
@@ -148,60 +147,95 @@
         </section>
 
         <section *ngIf="viewMode === 'student' && selectedStudent as detail" class="student-view">
-            <section class="panel student-hero">
-                <div class="student-hero-copy">
-                    <span class="eyebrow">Vue individuelle</span>
-                    <h2>{{ detail.name }}</h2>
-                    <p>{{ detail.marketTarget }} · {{ detail.pct }}% d'adéquation marché</p>
-                </div>
-
-                <div class="student-hero-stats">
-                    <div class="hero-stat">
-                        <span class="hero-stat-label">Classement cohorte</span>
-                        <strong>#{{ detail.cohortRank }}</strong>
-                    </div>
-                    <div class="hero-stat">
-                        <span class="hero-stat-label">Gaps</span>
-                        <strong>{{ detail.gaps }}</strong>
-                    </div>
-                    <div class="hero-stat">
-                        <span class="hero-stat-label">Métier plus adéquat</span>
-                        <strong>{{ detail.marketTarget }}</strong>
-                    </div>
-                </div>
-            </section>
-
-            <section class="panel picker-panel" *ngIf="studentDetails.length > 1">
-                <div class="panel-head compact">
-                    <div>
-                        <h2>Classification des étudiants par taux de matching</h2>
-                        <p>Choisir un étudiant à inspecter</p>
-                    </div>
-                </div>
-
-                <div class="picker-filters">
-                    <div class="picker-filter-group">
-                        <label class="picker-filter-label">Filière</label>
-                        <select class="picker-select" [(ngModel)]="filterFiliere">
-                            <option value="">Toutes les filières</option>
-                            <option *ngFor="let f of uniqueFilieres" [value]="f">{{ f }}</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="student-picker-list">
-                    <button *ngFor="let s of filteredStudentDetails; let i = index" type="button" class="student-picker-row" [class.is-active]="studentDetails.indexOf(s) === selectedStudentIndex" (click)="setStudent(studentDetails.indexOf(s))">
-                        <div class="picker-avatar" [style.background]="s.bg" [style.color]="s.fg">{{ s.initials }}</div>
-                        <div class="picker-info">
-                            <span class="picker-name">{{ s.name }}</span>
-                            <span class="picker-meta">{{ s.filiere || '—' }} · {{ s.diplome }}</span>
+            <div class="student-top-grid">
+                <div class="student-main-column">
+                    <section class="panel student-hero">
+                        <div class="student-hero-copy">
+                            <span class="eyebrow">Vue individuelle</span>
+                            <h2>{{ detail.name }}</h2>
+                            <p>{{ showTargetJobView && targetJobStats ? targetJobStats.metierName : detail.marketTarget }} · {{ showTargetJobView && targetJobStats ? targetJobStats.coveragePct : detail.pct }}% d'adéquation {{ showTargetJobView && targetJobStats ? 'métier visé' : 'marché' }}</p>
+                            <div class="student-hero-actions">
+                                <button type="button" class="hero-action primary-action" (click)="openCvModal(detail.cvSubmissionId, detail.authId, detail.name)">
+                                    Ouvrir CV
+                                </button>
+                                <button type="button" class="hero-action secondary-action" [class.is-active]="showTargetJobView" [disabled]="targetJobLoading" (click)="toggleTargetJobView(detail.cvSubmissionId, detail.authId)">
+                                    {{ targetJobLoading ? 'Chargement…' : (showTargetJobView ? 'Métier plus adéquat' : 'Métier visé') }}
+                                </button>
+                            </div>
+                            <p *ngIf="targetJobError" class="target-job-error">{{ targetJobError }}</p>
                         </div>
-                        <div class="picker-pct" [style.color]="s.color">{{ s.pct }}%</div>
-                        <div class="picker-rank">#{{ s.cohortRank }}</div>
-                    </button>
-                    <p *ngIf="filteredStudentDetails.length === 0" class="empty-hint">Aucun étudiant pour ces filtres.</p>
+
+                        <div class="student-hero-stats">
+                            <div class="hero-stat">
+                                <span class="hero-stat-label">Classement cohorte</span>
+                                <strong>#{{ detail.cohortRank }}</strong>
+                            </div>
+                            <div class="hero-stat">
+                                <span class="hero-stat-label">Gaps</span>
+                                <strong>{{ detail.gaps }}</strong>
+                            </div>
+                            <div class="hero-stat">
+                                <span class="hero-stat-label">{{ showTargetJobView && targetJobStats ? 'Métier ciblé' : 'Métier plus adéquat' }}</span>
+                                <strong>{{ showTargetJobView && targetJobStats ? targetJobStats.metierName : detail.marketTarget }}</strong>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel student-profile-panel">
+                        <div class="panel-head compact">
+                            <div>
+                                <h2>Profil de l'étudiant</h2>
+                                <p>Indicateurs clés du profil</p>
+                            </div>
+                        </div>
+
+                        <div class="student-profile-grid">
+                            <div class="profile-field profile-field-main">
+                                <span class="profile-label">Filière</span>
+                                <strong>{{ detail.filiere || 'Non renseignée' }}</strong>
+                                <span class="profile-meta">{{ detail.diplome }}</span>
+                            </div>
+
+                            <div class="profile-field profile-score-field">
+                                <span class="profile-label">{{ showTargetJobView && targetJobStats ? 'Adéquation métier visé' : 'Taux de matching' }}</span>
+                                <strong>{{ showTargetJobView && targetJobStats ? targetJobStats.coveragePct : detail.pct }}%</strong>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-            </section>
+
+                <section class="panel picker-panel" *ngIf="studentDetails.length > 1">
+                    <div class="panel-head compact">
+                        <div>
+                            <h2>Classification des étudiants par taux de matching</h2>
+                            <p>Choisir un étudiant à inspecter</p>
+                        </div>
+                    </div>
+
+                    <div class="picker-filters">
+                        <div class="picker-filter-group">
+                            <label class="picker-filter-label">Filière</label>
+                            <select class="picker-select" [(ngModel)]="filterFiliere">
+                                <option value="">Toutes les filières</option>
+                                <option *ngFor="let f of uniqueFilieres" [value]="f">{{ f }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="student-picker-list">
+                        <button *ngFor="let s of filteredStudentDetails; let i = index" type="button" class="student-picker-row" [class.is-active]="studentDetails.indexOf(s) === selectedStudentIndex" (click)="setStudent(studentDetails.indexOf(s))">
+                            <div class="picker-avatar" [style.background]="s.bg" [style.color]="s.fg">{{ s.initials }}</div>
+                            <div class="picker-info">
+                                <span class="picker-name">{{ s.name }}</span>
+                                <span class="picker-meta">{{ s.filiere || '—' }} · {{ s.diplome }}</span>
+                            </div>
+                            <div class="picker-pct" [style.color]="s.color">{{ s.pct }}%</div>
+                            <div class="picker-rank">#{{ s.cohortRank }}</div>
+                        </button>
+                        <p *ngIf="filteredStudentDetails.length === 0" class="empty-hint">Aucun étudiant pour ces filtres.</p>
+                    </div>
+                </section>
+            </div>
 
             <section class="student-layout">
                 <article class="panel student-detail-panel">
@@ -216,17 +250,16 @@
                         <div>
                             <h3>Points forts</h3>
                             <ul class="detail-list success-list">
-                                <li *ngFor="let item of detail.strengths">{{ item }}</li>
+                                <li *ngFor="let item of (showTargetJobView && targetJobStats ? targetJobStats.strengths : detail.strengths)">{{ item }}</li>
                             </ul>
                         </div>
                         <div>
                             <h3>Axe d'amélioration</h3>
                             <ul class="detail-list alert-list">
-                                <li *ngFor="let item of detail.watchouts">{{ item }}</li>
+                                <li *ngFor="let item of (showTargetJobView && targetJobStats ? targetJobStats.watchouts : detail.watchouts)">{{ item }}</li>
                             </ul>
                         </div>
                     </div>
-
 
                     <div class="next-steps">
                         <h3>Prochaines actions</h3>
@@ -245,8 +278,8 @@
                         </div>
                     </div>
 
-                    <div class="skill-list focus-skill-list" *ngIf="detail.skillFocus.length > 0; else noFocus">
-                        <div class="skill-row focus-row" *ngFor="let item of detail.skillFocus">
+                    <div class="skill-list focus-skill-list" *ngIf="(showTargetJobView && targetJobStats ? targetJobStats.skillFocus : detail.skillFocus).length > 0; else noFocus">
+                        <div class="skill-row focus-row" *ngFor="let item of (showTargetJobView && targetJobStats ? targetJobStats.skillFocus : detail.skillFocus)">
                             <div class="skill-name">{{ item.label }}</div>
                             <div class="skill-track" aria-hidden="true">
                                 <div class="skill-fill" [style.width.%]="item.acquis"></div>
@@ -265,3 +298,18 @@
         </section>
     </ng-container>
 </main>
+
+<!-- CV Modal -->
+<div class="cv-modal-overlay" *ngIf="cvModalOpen" (click)="closeCvModal()">
+    <div class="cv-modal-panel" (click)="$event.stopPropagation()">
+        <div class="cv-modal-header">
+            <h2>CV — {{ cvModalStudentName }}</h2>
+            <button type="button" class="cv-modal-close" (click)="closeCvModal()">✕</button>
+        </div>
+        <div class="cv-modal-body">
+            <p *ngIf="cvModalLoading" class="status-message">Chargement du CV…</p>
+            <p *ngIf="cvModalError && !cvModalLoading" class="status-message error">{{ cvModalError }}</p>
+            <app-cv-preview *ngIf="cvModalCv && !cvModalLoading" [cv]="cvModalCv" [profile]="{ displayName: cvModalStudentName }"></app-cv-preview>
+        </div>
+    </div>
+</div>

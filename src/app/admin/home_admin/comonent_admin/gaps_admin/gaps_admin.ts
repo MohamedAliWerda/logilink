@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { CvPreview } from '../../../../user/home/component/cv-preview/cv-preview';
 
 type ViewMode = 'cohort' | 'student';
 type SkillStatus = 'Aligné' | 'Partiel' | 'Gap fort' | 'Insuffisante';
@@ -28,6 +29,7 @@ interface PriorityItem {
 
 interface StudentItem {
   authId: string;
+  cvSubmissionId: string;
   initials: string;
   name: string;
   pct: number;
@@ -76,10 +78,20 @@ interface GapsDashboardPayload {
   jobFit: JobItem[];
 }
 
+interface TargetJobStats {
+  metierName: string;
+  coveragePct: number;
+  matched: number;
+  total: number;
+  strengths: string[];
+  watchouts: string[];
+  skillFocus: Array<{ label: string; acquis: number; requis: number; status: SkillStatus }>;
+}
+
 @Component({
   selector: 'app-gaps-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CvPreview],
   templateUrl: './gaps_admin.html',
   styleUrl: './gaps_admin.css'
 })
@@ -92,6 +104,21 @@ export class GapsAdmin implements OnInit {
 
   loading = true;
   errorMessage: string | null = null;
+
+  // CV modal
+  cvModalOpen = false;
+  cvModalLoading = false;
+  cvModalCv: any | null = null;
+  cvModalStudentName = '';
+  cvModalError: string | null = null;
+
+  // Métier visé toggle
+  showTargetJobView = false;
+  targetJobLoading = false;
+  targetJobStats: TargetJobStats | null = null;
+  targetJobError: string | null = null;
+
+  private studentDataCache = new Map<string, any>();
 
   cohortLabel = '';
   totalStudents = 0;
@@ -120,6 +147,7 @@ export class GapsAdmin implements OnInit {
   async loadDashboard(): Promise<void> {
     this.loading = true;
     this.errorMessage = null;
+    this.studentDataCache.clear();
     try {
       const url = `${environment.apiUrl}/admin/gaps`;
       const response = await firstValueFrom(this.http.get<{ data?: GapsDashboardPayload } | GapsDashboardPayload>(url));
@@ -180,7 +208,69 @@ export class GapsAdmin implements OnInit {
     if (index < 0 || index >= this.studentDetails.length) {
       return;
     }
+    if (this.selectedStudentIndex !== index) {
+      this.showTargetJobView = false;
+      this.targetJobStats = null;
+      this.targetJobError = null;
+      this.cvModalOpen = false;
+      this.cvModalCv = null;
+    }
     this.selectedStudentIndex = index;
+  }
+
+  async openCvModal(cvSubmissionId: string, authId: string, studentName: string): Promise<void> {
+    this.cvModalOpen = true;
+    this.cvModalStudentName = studentName;
+    this.cvModalCv = null;
+    this.cvModalError = null;
+    this.cvModalLoading = true;
+    this.cdr.detectChanges();
+    try {
+      const data = await this.fetchStudentData(cvSubmissionId, authId);
+      this.cvModalCv = data?.cv ?? null;
+      if (!this.cvModalCv) this.cvModalError = 'Aucun CV trouvé pour cet étudiant.';
+    } catch {
+      this.cvModalError = 'Impossible de charger le CV.';
+    } finally {
+      this.cvModalLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  closeCvModal(): void {
+    this.cvModalOpen = false;
+    this.cvModalCv = null;
+  }
+
+  async toggleTargetJobView(cvSubmissionId: string, authId: string): Promise<void> {
+    if (this.showTargetJobView) {
+      this.showTargetJobView = false;
+      return;
+    }
+    this.targetJobLoading = true;
+    this.targetJobError = null;
+    this.cdr.detectChanges();
+    try {
+      const data = await this.fetchStudentData(cvSubmissionId, authId);
+      this.targetJobStats = data?.targetJobStats ?? null;
+      if (!this.targetJobStats) this.targetJobError = 'Aucune donnée métier visé disponible.';
+      else this.showTargetJobView = true;
+    } catch {
+      this.targetJobError = 'Impossible de charger les données du métier visé.';
+    } finally {
+      this.targetJobLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private async fetchStudentData(cvSubmissionId: string, authId: string): Promise<any> {
+    const cacheKey = cvSubmissionId || authId;
+    if (this.studentDataCache.has(cacheKey)) return this.studentDataCache.get(cacheKey);
+    const url = `${environment.apiUrl}/admin/student-cv/${cvSubmissionId}?authId=${encodeURIComponent(authId)}`;
+    const raw = await firstValueFrom(this.http.get<any>(url));
+    const data = (raw as any)?.data ?? raw;
+    this.studentDataCache.set(cacheKey, data);
+    return data;
   }
 
   get headerSubtitle(): string {
