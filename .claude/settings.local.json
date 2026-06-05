@@ -54,7 +54,8 @@
       "Bash(echo \"exit: $?\")",
       "Bash(echo \"tsc exit: $?\")",
       "Bash(git log *)",
-      "Bash(xargs grep -l \"Gaps\\\\|gaps\\\\|RefCompetance\\\\|ref_competance\")"
+      "Bash(xargs grep -l \"Gaps\\\\|gaps\\\\|RefCompetance\\\\|ref_competance\")",
+      "Bash(xargs grep -l \"Societe\\\\|Entreprise\")"
     ]
   }
 }

@@ -60,6 +60,7 @@ export class FeedbackEntreprise implements OnInit, OnDestroy {
   screenState: ScreenState = 'loading';
   eligibleOffres: EligibleOffre[] = [];
   selectedOffre: EligibleOffre | null = null;
+  showDeclineConfirm = false;
 
   currentStep = 0;
   isSubmitting = false;
@@ -231,11 +232,21 @@ export class FeedbackEntreprise implements OnInit, OnDestroy {
   }
 
   acceptedStudent(): void {
+    this.showDeclineConfirm = false;
     this.restoreDraft();
     this.screenState = 'form';
   }
 
+  requestDecline(): void {
+    this.showDeclineConfirm = true;
+  }
+
+  cancelDecline(): void {
+    this.showDeclineConfirm = false;
+  }
+
   async declinedStudent(): Promise<void> {
+    this.showDeclineConfirm = false;
     const declinedId = this.selectedOffre?.id;
     if (declinedId) {
       this.eligibleOffres = this.eligibleOffres.filter((o) => o.id !== declinedId);

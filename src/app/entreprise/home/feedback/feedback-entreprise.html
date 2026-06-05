@@ -67,9 +67,30 @@
             <button class="btn btn-primary" type="button" (click)="acceptedStudent()" style="min-width:160px;">
         Oui, j'ai recruté
       </button>
-            <button class="btn btn-secondary" type="button" (click)="declinedStudent()" style="min-width:160px;">
+            <button class="btn btn-secondary" type="button" (click)="requestDecline()" style="min-width:160px;">
         Non, pas cette fois
       </button>
+        </div>
+
+        <!-- Confirmation dialog -->
+        <div *ngIf="showDeclineConfirm"
+             style="position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;">
+            <div style="background:#fff;border-radius:12px;padding:32px 28px;max-width:420px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+                <div style="font-size:2rem;margin-bottom:12px;">⚠️</div>
+                <h3 style="margin:0 0 10px;font-size:1.1rem;color:#1e293b;">Confirmer le refus</h3>
+                <p style="color:#64748b;font-size:0.92rem;margin:0 0 24px;line-height:1.55;">
+                    Êtes-vous sûr(e) de ne pas avoir recruté de diplômé ISGIS via cette offre ?<br>
+                    Cette action ne peut pas être annulée.
+                </p>
+                <div style="display:flex;gap:12px;justify-content:center;">
+                    <button class="btn btn-secondary" type="button" (click)="cancelDecline()" style="min-width:120px;">
+                        Annuler
+                    </button>
+                    <button class="btn btn-primary" type="button" (click)="declinedStudent()" style="min-width:120px;background:#dc2626;border-color:#dc2626;">
+                        Confirmer
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

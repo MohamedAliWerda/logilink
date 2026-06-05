@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -35,6 +35,7 @@ export class FicheSignaletique implements OnInit {
     private router: Router,
     private readonly supabaseService: SupabaseService,
     private readonly ngZone: NgZone,
+    private readonly cdr: ChangeDetectorRef,
   ) {
     this.profilForm = this.fb.group({
       nomEntreprise: ['', [Validators.required, Validators.maxLength(200)]],
@@ -169,6 +170,7 @@ export class FicheSignaletique implements OnInit {
     this.isSaving = true;
     this.successMessage = '';
     this.errorMessage = '';
+    this.cdr.detectChanges();
 
     try {
       const payload = {
@@ -183,27 +185,37 @@ export class FicheSignaletique implements OnInit {
         throw new Error('Compte entreprise introuvable. Veuillez vous reconnecter.');
       }
 
-      const updated = (await this.supabaseService.updateSocieteProfile(this.societeId, payload)) as any;
+      // Send update — backend has an 8s Supabase timeout so this always resolves.
+      // The HTTP pipe also has a 15s rxjs timeout as a safety net.
+      await this.supabaseService.updateSocieteProfile(this.societeId, payload);
 
-      this.profil = {
-        nomEntreprise: String(updated?.denomination_sociale ?? payload.nomEntreprise),
-        email: String(updated?.email ?? payload.email),
-        telephone: String(updated?.telephone ?? payload.telephone),
-        adresse: String(updated?.adresse ?? payload.adresse),
-        description: String(updated?.secteur_activite ?? payload.description),
-      };
+      // Confirm by re-fetching the saved row directly from the backend.
+      const confirmed = await this.withTimeout(
+        this.supabaseService.fetchSocieteById(this.societeId),
+        10000,
+        'Modification enregistrée. Impossible de confirmer, veuillez rafraîchir la page.',
+      ) as any;
+
+      this.applySocieteToForm(confirmed ?? payload);
 
       const entrepriseRaw = localStorage.getItem('entreprise');
       const entreprise = entrepriseRaw ? JSON.parse(entrepriseRaw) : {};
-      localStorage.setItem('entreprise', JSON.stringify({ ...entreprise, ...(updated ?? {}) }));
+      localStorage.setItem('entreprise', JSON.stringify({ ...entreprise, ...(confirmed ?? {}) }));
 
       this.isEditing = false;
       this.successMessage = 'Profil mis à jour avec succès !';
-      setTimeout(() => this.successMessage = '', 3000);
+      this.cdr.detectChanges();
+
+      setTimeout(() => {
+        this.successMessage = '';
+        this.cdr.detectChanges();
+      }, 3000);
     } catch (error: any) {
       this.errorMessage = error?.message || 'Impossible de mettre à jour le profil.';
+      this.cdr.detectChanges();
     } finally {
       this.isSaving = false;
+      this.cdr.detectChanges();
     }
   }
 

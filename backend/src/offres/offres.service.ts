@@ -103,6 +103,17 @@ export class OffresService {
 
   async getActiveOffres() {
     try {
+      const { data: archivedSocietes, error: societeError } = await this.supabase
+        .from('Societe')
+        .select('id')
+        .ilike('situation', 'archiver');
+
+      if (societeError) {
+        throw new Error(`Supabase error: ${societeError.message}`);
+      }
+
+      const archivedIds = new Set((archivedSocietes || []).map((s: any) => s.id));
+
       const { data: offres, error } = await this.supabase
         .from('post')
         .select('*')
@@ -113,14 +124,16 @@ export class OffresService {
         throw new Error(`Supabase error: ${error.message}`);
       }
 
-      const postIds = (offres || [])
+      const activeOffres = (offres || []).filter((row: any) => !archivedIds.has(row.id));
+
+      const postIds = activeOffres
         .map((row: any) => Number(row?.id_line ?? row?.id_post ?? 0))
         .filter((id: number) => Number.isInteger(id) && id > 0);
       const candidaturesByPost = await this.getCandidatureCountsByPostIds(postIds);
 
       return {
         message: 'Offres récupérées avec succès',
-        data: (offres || []).map((row: any) => ({
+        data: activeOffres.map((row: any) => ({
           id: String(row.id_line ?? row.id),
           id_line: row.id_line,
           societe_id: row.id,

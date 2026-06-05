@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 
@@ -130,7 +130,9 @@ export class SupabaseService {
     },
   ) {
     const apiUrl = `${environment.apiUrl}/entreprise/${id}/profile`;
-    const response = await firstValueFrom(this.http.put<any>(apiUrl, payload));
+    const response = await firstValueFrom(
+      this.http.put<any>(apiUrl, payload).pipe(timeout(15000)),
+    );
     return this.unwrap(response);
   }
 

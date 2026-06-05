@@ -704,9 +704,16 @@ export class Profil {
         const base64 = dataUriString.split(',')[1];
 
         if (base64 && base64.length > 1500) {
-          localStorage.setItem('mySavedCvPdf', base64);
-          localStorage.setItem('mySavedCvTimestamp', new Date().toISOString());
-          this.loadSavedPdf();
+          try {
+            localStorage.removeItem('mySavedCvPdf');
+            localStorage.setItem('mySavedCvPdf', base64);
+            localStorage.setItem('mySavedCvTimestamp', new Date().toISOString());
+            this.loadSavedPdf();
+          } catch {
+            // PDF too large for localStorage quota — skip caching, download still proceeds
+            this.savedCvPdfBase64 = null;
+            this.savedCvDataUrl = null;
+          }
           const a = document.createElement('a');
           a.href = 'data:application/pdf;base64,' + base64;
           a.download = 'mon_cv.pdf';

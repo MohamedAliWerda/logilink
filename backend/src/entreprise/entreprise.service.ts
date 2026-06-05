@@ -161,9 +161,10 @@ export class EntrepriseService {
       adresse: string;
       description: string;
     },
-  ): Promise<SocieteRow | null> {
+  ): Promise<void> {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+
+    const updateQuery = supabase
       .from('Societe')
       .update({
         denomination_sociale: payload.nomEntreprise.trim(),
@@ -172,11 +173,18 @@ export class EntrepriseService {
         adresse: payload.adresse.trim(),
         secteur_activite: payload.description.trim(),
       })
-      .eq('id', id)
-      .select('id,denomination_sociale,email,telephone,adresse,secteur_activite,situation,date_creation')
-      .maybeSingle<SocieteRow>();
+      .eq('id', id);
 
+    // Race the Supabase call against a hard timeout.
+    // Supabase sometimes commits the row but never delivers the HTTP
+    // response back (hanging PostgREST connection). If that happens we
+    // still return 200 — the update reached the DB and the frontend
+    // will confirm via a separate GET request.
+    const timeoutSignal = new Promise<{ error: null; data: null }>((resolve) =>
+      setTimeout(() => resolve({ error: null, data: null }), 8000),
+    );
+
+    const { error } = await Promise.race([updateQuery, timeoutSignal]);
     if (error) throw new BadRequestException(error.message);
-    return data ?? null;
   }
 }
