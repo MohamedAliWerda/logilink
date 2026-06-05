@@ -55,7 +55,32 @@
       "Bash(echo \"tsc exit: $?\")",
       "Bash(git log *)",
       "Bash(xargs grep -l \"Gaps\\\\|gaps\\\\|RefCompetance\\\\|ref_competance\")",
-      "Bash(xargs grep -l \"Societe\\\\|Entreprise\")"
+      "Bash(xargs grep -l \"Societe\\\\|Entreprise\")",
+      "Bash(bash)",
+      "Bash(xxd)",
+      "Bash(sed -n '236,241p;910,915p' src/app/admin/home_admin/comonent_admin/gaps_admin/gaps_admin.css)",
+      "Bash(sed -n '189,194p;521,526p' src/app/admin/home_admin/comonent_admin/validation_admin/validation_admin.css)",
+      "Bash(sed -n '75,89p' src/app/user/home/component/cv-preview/cv-preview.css)",
+      "Bash(grep -nB3 \"grid-template-columns: 1.2fr\\\\|grid-template-columns: repeat\\(2\" src/app/user/home/component/cv-ats/cv-ats.css)",
+      "Bash(sed -n '336,350p' src/app/user/home/component/recommendation/recommendation.css)",
+      "Bash(sed -n '83,87p' src/app/user/home/component/dashboard/dashboard.css)",
+      "Bash(sed -n '53,57p' src/app/user/home/component/matching/matching.css)",
+      "Bash(sed -n '71,75p' src/app/user/home/component/profil/profil.css)",
+      "Bash(sed -n '525,560p' src/app/user/home/component/dashboard/dashboard.css)",
+      "Bash(sed -n '1150,1180p' src/app/user/home/component/dashboard/dashboard.css)",
+      "Bash(sed -n '130,133p;856,859p;945,948p' src/app/user/home/component/dashboard/dashboard.css)",
+      "Bash(sed -n '60,64p' src/app/user/home/component/recommendation/recommendation.css)",
+      "Bash(sed -n '438,460p' src/app/user/home/component/matching/matching.css)",
+      "Bash(sed -n '460,490p' src/app/user/home/component/offres-emp/offres-emp.css)",
+      "Bash(sed -n '546,560p' src/app/user/home/component/profil/profil.css)",
+      "Bash(sed -n '297,301p' src/app/user/home/component/profil/profil.css)",
+      "Bash(sed -n '530,546p' src/app/user/home/component/profil/profil.css)",
+      "Bash(sed -n '80,84p;490,503p' src/app/entreprise/home/candidatures/candidatures.css)",
+      "Bash(sed -n '778,803p' src/app/entreprise/home/offres/offres.css)",
+      "Bash(npx ng *)",
+      "Bash(sed -n '60,64p;236,239p' src/app/user/home/component/recommendation/recommendation.css)",
+      "Bash(sed -n '340,350p' src/app/user/home/component/recommendation/recommendation.css)",
+      "Bash(grep -n \"white-space: nowrap\\\\|flex-shrink: 0\\\\|width: [0-9]\\\\{3,\\\\}px\\\\|min-width\\\\|margin: -\\\\|margin-left: -\\\\|margin-right: -\\\\|overflow-x\" src/app/user/home/component/recommendation/recommendation.css)"
     ]
   }
 }

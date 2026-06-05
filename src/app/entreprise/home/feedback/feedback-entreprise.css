@@ -605,3 +605,30 @@
         justify-content: center;
     }
 }
+
+/* ── Phones: the rating matrix (label + 6 circles) is too wide in one row,
+   so stack the dimension label above its 6 rating circles. ── */
+@media (max-width: 600px) {
+    .rating-matrix-head {
+        display: none;
+    }
+    .rating-row {
+        grid-template-columns: repeat(6, 1fr);
+        column-gap: 6px;
+        row-gap: 4px;
+        padding: 6px 0;
+        border-bottom: 1px solid #f0ece4;
+    }
+    .rating-label-cell {
+        grid-column: 1 / -1;
+        padding: 0 0 4px;
+        font-size: 13px;
+    }
+    .rating-circle {
+        width: 26px;
+        height: 26px;
+    }
+    .satisfaction-scale {
+        justify-content: center;
+    }
+}

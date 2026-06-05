@@ -392,3 +392,26 @@
         padding: 1.2rem;
     }
 }
+
+@media (max-width: 600px) {
+    .admin-page-header .title {
+        font-size: 1.2rem;
+    }
+    .search-box {
+        max-width: none;
+    }
+    .table-panel {
+        padding: 1rem;
+    }
+    /* Only the table scrolls — the "Liste des étudiants" title stays fixed */
+    .students-table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .dashboard-styled-table {
+        min-width: 600px;
+    }
+    .profile-modal-card {
+        width: 100%;
+    }
+}

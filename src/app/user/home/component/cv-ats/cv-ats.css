@@ -959,6 +959,17 @@ textarea.form-control {
     }
 }
 
+@media (max-width: 600px) {
+    /* The multi-column interest/skill input rows stack on phones */
+    .interest-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .cv-paper {
+        padding: 18px 14px;
+    }
+}
+
 @media print {
     /* Fallback: if user hits Ctrl+P directly on the main app page, hide UI chrome */
     body * {

@@ -721,3 +721,44 @@
         max-height: 280px;
     }
 }
+
+
+/* ─── Responsive: tablet + phones ─────────────────────── */
+
+@media (max-width: 900px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .charts-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        gap: 0.7rem;
+    }
+    .stat-card {
+        padding: 1rem 1.1rem;
+    }
+    .stat-value {
+        font-size: 1.9rem;
+    }
+    .table-panel {
+        padding: 1rem;
+    }
+    /* Only the table scrolls — the header (with "Voir tout") stays fixed */
+    .students-table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .students-table {
+        min-width: 560px;
+    }
+    .chart-title {
+        font-size: 1.1rem;
+    }
+    .score-title {
+        font-size: 1.5rem;
+    }
+}

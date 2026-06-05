@@ -10,6 +10,7 @@
 
 * {
     gap: 16px;
+    box-sizing: border-box;
 }
 
 
@@ -1307,8 +1308,19 @@
     .student-picker-row {
         grid-template-columns: 36px 1fr auto;
     }
-    
+
     .picker-rank {
         display: none;
+    }
+}
+
+/* ── Phones: stop fixed-width controls from overflowing ───────────────── */
+@media (max-width: 600px) {
+    .picker-select,
+    .select-wrap select {
+        min-width: 0;
+    }
+    .kpi-grid {
+        gap: 10px;
     }
 }

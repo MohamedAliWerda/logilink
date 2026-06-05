@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 :host {
     display: block;
 }
@@ -465,6 +471,18 @@
         align-items: flex-start;
     }
 
+    /* Stack panel headers and let the long sub-labels wrap instead of
+       forcing the panel wider than the screen (nowrap was overflowing). */
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+    }
+
+    .panel-sub {
+        white-space: normal;
+    }
+
     .dist-label {
         font-size: 0.58rem;
     }
@@ -475,15 +493,37 @@
 }
 
 @media (max-width: 600px) {
+    /* Force single-column KPIs so the 240px min never overflows tiny screens */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
     .dist-chart-wrap {
         min-height: 200px;
     }
 
     .dist-label {
-        font-size: 0.52rem;
+        font-size: 0.5rem;
     }
 
     .bars-row {
-        gap: 4px;
+        gap: 3px;
+    }
+
+    /* Let the chart bars shrink to fit the screen instead of overflowing */
+    .dist-col {
+        min-width: 0;
+    }
+
+    .dist-count {
+        font-size: 0.58rem;
+    }
+
+    .y-axis {
+        width: 22px;
+    }
+
+    .bar-pct {
+        width: 28px;
     }
 }

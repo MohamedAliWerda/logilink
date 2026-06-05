@@ -26,7 +26,9 @@ export class Navbar implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.sidebarService.open();
+    if (typeof window === 'undefined' || window.innerWidth > 600) {
+      this.sidebarService.open();
+    }
 
     // Try to read the logged-in user from localStorage and update the displayed name.
 

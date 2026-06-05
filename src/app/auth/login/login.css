@@ -436,6 +436,47 @@ input.input-error {
 }
 
 @media (max-width: 768px) {
+    :host {
+        align-items: stretch;
+        justify-content: stretch;
+        height: auto;
+        min-height: 100dvh;
+        padding: 0;
+    }
+    .main-login-layout {
+        width: 100%;
+        min-height: 100dvh;
+        flex-direction: column;
+        border-radius: 0;
+    }
+    .login-left {
+        order: 1;
+        flex: 0 0 auto;
+        width: 100%;
+        min-height: auto;
+        padding: 1.5rem 1rem;
+    }
+    .deco,
+    .viz-bar-chart,
+    .viz-donut,
+    .viz-stat-card {
+        display: none;
+    }
+    .main-logo {
+        width: 70%;
+        max-width: 220px;
+        height: auto;
+    }
+    .login-right {
+        order: 2;
+        flex: 1 1 auto;
+        width: 100%;
+        padding: 2rem 1.2rem;
+        box-shadow: none;
+    }
+    .login-box {
+        max-width: 100%;
+    }
     .access-switch-bar {
         margin-bottom: 0.7rem;
     }

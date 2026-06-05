@@ -234,6 +234,9 @@ export class Verify {
       if (this.resendCooldown <= 0) {
         this.clearTimer();
       }
+      // The interval runs outside Angular's change detection, so refresh the
+      // view each tick — otherwise the countdown only updates on a click.
+      this.cdr.detectChanges();
     }, 1000);
   }
 

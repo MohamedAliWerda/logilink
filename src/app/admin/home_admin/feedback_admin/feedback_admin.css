@@ -1428,3 +1428,17 @@ tbody td {
         justify-content: center;
     }
 }
+
+@media (max-width: 600px) {
+    /* Allow wide feedback tables to scroll horizontally on phones */
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .table-wrap table {
+        min-width: 640px;
+    }
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}

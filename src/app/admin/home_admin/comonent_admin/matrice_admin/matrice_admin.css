@@ -463,4 +463,16 @@ thead .sticky-col { background: #ffe6bf; z-index: 8; }
   .matrix-header h1 { font-size: 1.1rem; }
   .legend-bar { font-size: 0.72rem; }
   .filter-label { min-width: 55px; font-size: 0.75rem; }
+
+  /* Matrix on phones: shrink the two frozen columns and the métier columns
+     so the admin can actually see/scroll the coefficients while the matière
+     name stays pinned on the left for context. */
+  table { font-size: 0.7rem; }
+  th, td { padding: 0.3rem 0.2rem; }
+  .sticky-filiere { min-width: 36px; width: 36px; }
+  .sticky-matiere { left: 36px; min-width: 96px; max-width: 96px; }
+  .matiere-name { max-width: 96px; }
+  .metier-th { min-width: 50px; max-width: 50px; }
+  .metier-name { max-width: 46px; }
+  .score-cell { width: 26px; height: 26px; }
 }

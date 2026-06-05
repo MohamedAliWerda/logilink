@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 :host {
     display: block;
     font-family: 'Segoe UI', Arial, sans-serif;
@@ -347,5 +353,23 @@
     }
     .card-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .recommendation-main {
+        padding: 0.8rem;
+    }
+    .recommendation-header {
+        padding: 0.9rem 1rem;
+    }
+    .summary-row {
+        gap: 0.5rem;
+    }
+    .score-v2-head {
+        gap: 0.6rem;
+    }
+    .score-v2-btn {
+        width: 100%;
     }
 }

@@ -27,6 +27,7 @@
 }
 
 .backdrop {
+    display: none;
     position: fixed;
     inset: 0;
     backdrop-filter: blur(4px);
@@ -43,5 +44,23 @@
     }
     to {
         opacity: 1;
+    }
+}
+
+/* ── Mobile: content goes full-width, sidebar becomes an overlay drawer ── */
+@media (max-width: 600px) {
+    .content-area {
+        margin-left: 0;
+        padding-top: calc(56px + 18px);
+        padding-right: 14px;
+        padding-bottom: 24px;
+        padding-left: 14px;
+    }
+    .sidebar-collapsed .content-area {
+        margin-left: 0;
+    }
+    /* Backdrop only appears on phones while the drawer is open */
+    .backdrop {
+        display: block;
     }
 }

@@ -1381,3 +1381,47 @@
     border-color: #fca63a;
     background: #fff8f0;
 }
+
+
+/* ── Responsive: phones ─────────────────────────────── */
+
+@media (max-width: 600px) {
+    .dashboard-content {
+        padding: 0.9rem;
+    }
+    .stats-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.7rem;
+    }
+    .stat-card {
+        padding: 0.9rem 1rem;
+        gap: 0.5rem;
+    }
+    .stat-value {
+        font-size: 1.8rem;
+    }
+    .stat-label {
+        font-size: 0.8rem;
+        margin-bottom: 0.3rem;
+    }
+    .stat-icon {
+        font-size: 1.4rem;
+        padding: 0.5rem;
+    }
+    .matching-head {
+        grid-template-columns: 1fr;
+    }
+    .profil-content {
+        flex-direction: column;
+    }
+    .profil-left {
+        width: 100%;
+    }
+}
+
+/* Very small phones: one KPI per row so nothing overflows */
+@media (max-width: 400px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+}

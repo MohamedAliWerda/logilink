@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 .val-main {
     padding: 0;
     font-family: 'Segoe UI', Arial, sans-serif;
@@ -747,6 +753,26 @@
     .val-header p {
         font-size: 0.92rem;
     }
+    .val-header-text {
+        min-width: 0;
+    }
+    /* The view switch pill holds a long button — stack it so it fits */
+    .view-switch {
+        flex-direction: column;
+        align-items: stretch;
+        border-radius: 14px;
+        gap: 0.5rem;
+    }
+    .view-tabs {
+        justify-content: space-between;
+    }
+    .view-actions {
+        width: 100%;
+        margin-right: 0;
+    }
+    .view-actions .btn-primary {
+        width: 100%;
+    }
     .stats-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -757,9 +783,11 @@
         grid-column: span 1;
     }
     .reco-metrics {
-        align-items: flex-end;
-        text-align: right;
+        align-items: flex-start;
+        text-align: left;
         width: 100%;
+        min-width: 0;
+        margin-left: 0;
     }
     .search-input-wrap {
         min-width: 100%;

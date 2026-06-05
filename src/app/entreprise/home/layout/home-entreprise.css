@@ -36,6 +36,28 @@
     animation: backdropFadeIn 250ms ease forwards;
 }
 
+/* Backdrop is hidden by default; only shown on phones while drawer is open */
+.backdrop {
+    display: none;
+}
+
+/* ── Mobile: content goes full-width, sidebar becomes an overlay drawer ── */
+@media (max-width: 600px) {
+    .content-area {
+        margin-left: 0;
+        padding-top: calc(56px + 18px);
+        padding-right: 14px;
+        padding-bottom: 24px;
+        padding-left: 14px;
+    }
+    .sidebar-collapsed .content-area {
+        margin-left: 0;
+    }
+    .backdrop {
+        display: block;
+    }
+}
+
 @keyframes backdropFadeIn {
     from {
         opacity: 0;

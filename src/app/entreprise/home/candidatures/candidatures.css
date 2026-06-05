@@ -1,5 +1,11 @@
 /* ===== GLOBAL ===== */
 
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 .page {
     padding: 0;
     background: #f4efe8;
@@ -491,9 +497,53 @@
     .kpi-grid {
         grid-template-columns: 1fr;
     }
+    .filter-select {
+        width: 100%;
+    }
+
+    /* Clean candidate card on phones:
+       row 1 = avatar + identity, row 2 = the two scores, row 3 = Voir CV. */
     .card {
         flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
     }
+    .avatar {
+        flex: 0 0 auto;
+    }
+    /* Info fills the rest of row 1 next to the avatar */
+    .info {
+        flex: 1 1 calc(100% - 64px);
+        min-width: 0;
+    }
+    .info h4,
+    .info p,
+    .info small {
+        overflow-wrap: anywhere;
+    }
+    .skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .skills span {
+        margin-right: 0;
+    }
+    /* Two scores share row 2; let the labels wrap so they can shrink */
+    .score-block {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .score-label {
+        white-space: normal;
+    }
+    .btn {
+        flex: 1 1 100%;
+        order: 5;
+        padding: 12px 16px;
+    }
+
     .cv-modal {
         width: 100%;
         max-height: 96vh;

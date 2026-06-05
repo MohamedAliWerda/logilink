@@ -120,7 +120,8 @@
         <p *ngIf="recentStudentsLoading" style="font-size: 0.95rem; color:#44546a; padding: 0.4rem 0.8rem;">Chargement…</p>
         <p *ngIf="recentStudentsError && !recentStudentsLoading" style="font-size: 0.95rem; color:#7B1212; padding: 0.4rem 0.8rem;">{{ recentStudentsError }}</p>
         <p *ngIf="!recentStudentsLoading && !recentStudentsError && recentStudents.length === 0" style="font-size: 0.95rem; color:#44546a; padding: 0.4rem 0.8rem;">Aucun étudiant à afficher.</p>
-        <table *ngIf="recentStudents.length > 0" class="students-table">
+        <div class="students-table-scroll" *ngIf="recentStudents.length > 0">
+        <table class="students-table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -143,6 +144,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 
 

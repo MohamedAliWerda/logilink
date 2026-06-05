@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 :host {
     display: block;
 }
@@ -791,14 +797,54 @@
     .header-right {
         width: 100%;
         flex-direction: column;
+        align-items: stretch;
     }
     .search-box {
         width: 100%;
     }
+    /* "Nouvelle offre" button fills the toolbar block on phones */
+    .header-right .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
     .offre-card {
         flex-direction: column;
+        padding: 18px 16px;
     }
     .offre-actions {
         flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .offre-actions > button {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+    .header-toolbar {
+        padding: 10px;
+    }
+    .confirm-modal {
+        width: 100%;
+        max-width: 95vw;
+        padding: 28px 20px 22px;
+    }
+    /* "Nouvelle offre" dialog: use more of the screen and give the form room */
+    .modal {
+        width: 100%;
+        max-width: 100%;
+    }
+    .modal-header {
+        padding: 20px 18px 0;
+    }
+    .form-body {
+        padding: 16px 18px;
+    }
+    .modal-footer {
+        flex-direction: column-reverse;
+        gap: 10px;
+        padding: 8px 18px 20px;
+    }
+    .modal-footer button {
+        width: 100%;
     }
 }

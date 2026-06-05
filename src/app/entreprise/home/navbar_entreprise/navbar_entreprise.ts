@@ -19,7 +19,9 @@ export class NavbarEntreprise implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.sidebarService.open();
+    if (typeof window === 'undefined' || window.innerWidth > 600) {
+      this.sidebarService.open();
+    }
     try {
       const stored = localStorage.getItem('entreprise');
       if (stored) {

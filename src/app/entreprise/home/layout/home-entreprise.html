@@ -2,6 +2,8 @@
     <app-navbar-entreprise></app-navbar-entreprise>
     <app-sidebar-entreprise></app-sidebar-entreprise>
 
+    <div class="backdrop" *ngIf="isOpen | async" (click)="sidebarService.close()" aria-hidden="true"></div>
+
     <main class="content-area" role="main" aria-label="Main content">
         <router-outlet></router-outlet>
     </main>

@@ -88,3 +88,12 @@
     padding: 2px 0;
     border-bottom: 1px dotted #ccc
 }
+
+@media (max-width: 600px) {
+    .ats-skills-wrap {
+        grid-template-columns: 1fr;
+    }
+    .ats-contacts {
+        flex-wrap: wrap;
+    }
+}

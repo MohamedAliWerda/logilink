@@ -22,7 +22,9 @@ export class NavbarAdmin implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.sidebarService.open();
+    if (typeof window === 'undefined' || window.innerWidth > 600) {
+      this.sidebarService.open();
+    }
   }
 
   toggleSidebar(): void {

@@ -359,6 +359,56 @@
 
 /* ================= RESPONSIVE ================= */
 
+@media (max-width: 600px) {
+    .container {
+        padding: 0.9rem;
+    }
+    .hero-header {
+        padding: 0.9rem 1rem;
+    }
+    .search-bar {
+        margin-bottom: 1.2rem;
+    }
+    .card {
+        padding: 1rem;
+    }
+
+    /* Clean two-row job layout on phones:
+       row 1 = radio + title + type tag, row 2 = action buttons. */
+    .job {
+        flex-wrap: wrap;
+        row-gap: 10px;
+        padding: 0.8rem;
+    }
+    .job .radio {
+        order: 0;
+    }
+    .job > span:not(.tag) {
+        order: 1;
+        flex: 1 1 auto;
+        min-width: 0;
+        word-break: break-word;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .job .tag {
+        order: 2;
+        flex: 0 0 auto;
+    }
+    .card-actions {
+        order: 3;
+        flex-basis: 100%;
+        margin-left: 0;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .details-btn,
+    .eliminer-btn {
+        padding: 7px 16px;
+        font-size: 12px;
+    }
+}
+
 @media (max-width: 900px) {
     .cards {
         grid-template-columns: 1fr;
