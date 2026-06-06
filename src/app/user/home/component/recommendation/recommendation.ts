@@ -52,7 +52,11 @@ export class Recommendation implements OnInit {
       const rows = await this.recommendationService.listApprovedForStudent();
       const prioritizedRows = rows.filter((row) => this.normalizeLevel(row.level) !== null);
 
+      const levelOrder: Record<string, number> = { CRITIQUE: 0, MOYENNE: 1, FAIBLE: 2 };
       prioritizedRows.sort((a, b) => {
+        const lvlA = levelOrder[this.normalizeLevel(a.level) ?? ''] ?? 99;
+        const lvlB = levelOrder[this.normalizeLevel(b.level) ?? ''] ?? 99;
+        if (lvlA !== lvlB) return lvlA - lvlB;
         const rateA = Number.isFinite(Number(a.concern_rate)) ? Number(a.concern_rate) : 0;
         const rateB = Number.isFinite(Number(b.concern_rate)) ? Number(b.concern_rate) : 0;
         return rateB - rateA;
@@ -141,7 +145,13 @@ export class Recommendation implements OnInit {
   }
 
   private byLevel(level: DisplayLevel): StudentRecommendation[] {
-    return this.approvedRecommendations().filter((item) => this.normalizeLevel(item.level) === level);
+    return this.approvedRecommendations()
+      .filter((item) => this.normalizeLevel(item.level) === level)
+      .sort((a, b) => {
+        const rateA = Number.isFinite(Number(a.concern_rate)) ? Number(a.concern_rate) : 0;
+        const rateB = Number.isFinite(Number(b.concern_rate)) ? Number(b.concern_rate) : 0;
+        return rateB - rateA;
+      });
   }
 
   private normalizeLevel(level: string | null | undefined): DisplayLevel | null {

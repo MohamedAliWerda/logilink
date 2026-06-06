@@ -410,9 +410,10 @@ export class RecommendationsService {
     const leftTokens = leftNormalized.split(' ').filter(Boolean);
     const rightTokens = new Set(rightNormalized.split(' ').filter(Boolean));
     const commonTokenCount = leftTokens.filter((token) => rightTokens.has(token)).length;
-    if (commonTokenCount >= 2) return true;
-
-    return commonTokenCount >= 1 && (leftTokens.length <= 1 || rightTokens.size <= 1);
+    // Require at least 2 common tokens to avoid accidental single-word collisions
+    // between unrelated competences (e.g. "conduire" matching "conduire" in a
+    // completely different competence sentence).
+    return commonTokenCount >= 2;
   }
 
   private levelFromGapSimilarityScore(similarityScore: unknown): StudentRecommendationLevel | null {
@@ -424,49 +425,49 @@ export class RecommendationsService {
     return null;
   }
 
+  private normalizeStoredLevel(level: unknown): StudentRecommendationLevel | null {
+    const v = String(level ?? '').trim().toUpperCase();
+    if (v === 'CRITIQUE') return 'CRITIQUE';
+    if (v === 'MOYENNE') return 'MOYENNE';
+    if (v === 'FAIBLE') return 'FAIBLE';
+    return null;
+  }
+
   private levelFromStudentMatchingGaps(
     row: RecommendationRow,
     studentGapEntries: StudentGapEntry[],
   ): StudentRecommendationLevel | null {
     if (!studentGapEntries.length) return null;
 
+    // Both recommendation.competence_name and gap entry.competence originate from
+    // the same cv_matching_competence_results.competence_name column.
+    // For existing approved records, competence_name was not copied to
+    // ai_confirmed_recommendations, so fall back to extracting it from gap_title
+    // by stripping the leading "[TYPE] " bracket prefix.
+    let rawCompetence = String(row?.competence_name ?? '').trim();
+    if (!rawCompetence) {
+      // gap_title format: "[1. CONDUIRE] Préparer et vérifier le matériel..."
+      rawCompetence = String(row?.gap_title ?? '').trim().replace(/^\[[^\]]*\]\s*/, '');
+    }
+    const competenceName = this.normalizeText(rawCompetence);
+    if (!competenceName) return null;
+
     const recommendationMetier = this.normalizeText(row?.metier);
-    const competenceCandidates = [
-      row?.competence_name,
-      row?.detected_gap,
-      row?.gap_title,
-      row?.gap_label,
-    ]
-      .map((value) => this.normalizeText(value))
-      .filter(Boolean);
-    if (!competenceCandidates.length) return null;
 
-    const pickBestLevel = (enforceMetier: boolean): StudentRecommendationLevel | null => {
-      let bestGapScore: number | null = null;
-
-      for (const gapEntry of studentGapEntries) {
-        if (
-          enforceMetier
-          && recommendationMetier
-          && !this.isMetierMatch(gapEntry.metier, recommendationMetier)
-        ) {
-          continue;
-        }
-
-        const hasCompetenceMatch = competenceCandidates.some((candidate) =>
-          this.isCompetenceMatch(candidate, gapEntry.competence),
-        );
-        if (!hasCompetenceMatch) continue;
-
-        bestGapScore = bestGapScore === null
-          ? gapEntry.similarityScore
-          : Math.min(bestGapScore, gapEntry.similarityScore);
+    const findScore = (enforceMetier: boolean): number | null => {
+      let score: number | null = null;
+      for (const entry of studentGapEntries) {
+        if (entry.competence !== competenceName) continue;
+        if (enforceMetier && recommendationMetier && !this.isMetierMatch(entry.metier, recommendationMetier)) continue;
+        // Multiple rows for same competence are rare but possible; take the minimum
+        // (most severe) score.
+        score = score === null ? entry.similarityScore : Math.min(score, entry.similarityScore);
       }
-
-      return this.levelFromGapSimilarityScore(bestGapScore);
+      return score;
     };
 
-    return pickBestLevel(true) ?? pickBestLevel(false);
+    const score = findScore(true) ?? findScore(false);
+    return this.levelFromGapSimilarityScore(score);
   }
 
   private levelFromConcernRate(concernRate: unknown): StudentRecommendationLevel | null {
@@ -493,6 +494,7 @@ export class RecommendationsService {
     );
 
     const level = this.levelFromStudentMatchingGaps(normalized, studentGapEntries)
+      ?? this.normalizeStoredLevel(normalized?.level)
       ?? this.levelFromConcernRate(normalized?.concern_rate)
       ?? 'FAIBLE';
 
@@ -603,6 +605,7 @@ export class RecommendationsService {
     const historyRow = {
       recommendation_id: recommendationId,
       category: row?.category ?? 'TARGET_METIER',
+      competence_name: row?.competence_name ?? null,
       gap_label: row?.gap_label ?? row?.competence_name ?? 'N/A',
       gap_title: row?.gap_title ?? row?.competence_name ?? 'N/A',
       level: row?.level ?? 'MOYENNE',
@@ -645,6 +648,7 @@ export class RecommendationsService {
     const confirmed = {
       recommendation_id: row.id,
       category: row.category ?? 'TARGET_METIER',
+      competence_name: row.competence_name ?? null,
       gap_label: row.gap_label ?? row.competence_name ?? 'N/A',
       gap_title: row.gap_title ?? row.competence_name ?? 'N/A',
       level: row.level ?? 'MOYENNE',

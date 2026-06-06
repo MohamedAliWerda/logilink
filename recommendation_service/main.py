@@ -92,12 +92,21 @@ LLM_PRIORITY_TIERS = {
     if t.strip()
 }
 
-# Seuils priorite (en % du cohorte)
+# Seuils priorite (en % du cohorte) — conserves pour tri/affichage mais ne
+# determinent plus le niveau affiché a l'etudiant.
 PRIORITY_THRESHOLDS = {
     "CRITIQUE": float(os.getenv("PRIORITY_CRITIQUE", "70")),
     "MOYENNE": float(os.getenv("PRIORITY_MOYENNE", "40")),
     "FAIBLE": float(os.getenv("PRIORITY_FAIBLE", "20")),
 }
+
+# Seuils de severite du gap (avg_similarity) — miroir exact de
+# levelFromGapSimilarityScore dans le backend NestJS :
+#   score >= 0.5 → FAIBLE  (gap leger, competence presque acquise)
+#   score >= 0.3 → MOYENNE (gap modere)
+#   score <  0.3 → CRITIQUE (gap important, competence absente)
+GAP_SEVERITY_FAIBLE   = float(os.getenv("GAP_SEVERITY_FAIBLE",   "0.5"))
+GAP_SEVERITY_MOYENNE  = float(os.getenv("GAP_SEVERITY_MOYENNE",  "0.3"))
 
 
 # =============================================================================
@@ -474,7 +483,6 @@ def retrieve_rag(query: str, k: int = TOP_K_RAG, st_model: Any | None = None) ->
     return [
         {**docs[int(i)], "score": float(sims[int(i)])}
         for i in top_idx
-        if sims[int(i)] > 0
     ]
 
 
@@ -768,6 +776,10 @@ def call_gemini_batch(
 def rag_only_reco(gap: dict[str, Any], rag: list[dict[str, Any]]) -> dict[str, Any]:
     cf = extract_rag_cert_fields(rag)
     comp = gap["competence_name"]
+    # When RAG found no certification, derive a descriptive title from the competence
+    if cf["cert_title"] in ("A definir", "", "N/A"):
+        cf = dict(cf)
+        cf["cert_title"] = f"Formation : {comp[:80]}"
     metier = gap["metier_name"]
     prio = gap["priority"]
     pct = gap["pct"]
@@ -819,11 +831,25 @@ def rag_only_reco(gap: dict[str, Any], rag: list[dict[str, Any]]) -> dict[str, A
 # =============================================================================
 
 def priority_label(pct: float) -> str:
+    """Classe par taux de cohorte — utilise uniquement pour tri interne."""
     if pct >= PRIORITY_THRESHOLDS["CRITIQUE"]:
         return "CRITIQUE"
     if pct >= PRIORITY_THRESHOLDS["MOYENNE"]:
         return "MOYENNE"
     return "FAIBLE"
+
+
+def priority_from_gap_severity(avg_sim: float) -> str:
+    """Classe par severite du gap (score de similarite moyen).
+
+    Un score faible signifie que la competence est tres eloignee du profil
+    etudiant => gap critique.  Miroir de levelFromGapSimilarityScore (NestJS).
+    """
+    if avg_sim >= GAP_SEVERITY_FAIBLE:
+        return "FAIBLE"
+    if avg_sim >= GAP_SEVERITY_MOYENNE:
+        return "MOYENNE"
+    return "CRITIQUE"
 
 
 def build_recommendation_id(bucket: str, metier: str, competence: str) -> str:
@@ -986,7 +1012,7 @@ def load_and_cluster_gaps(st_model: Any | None) -> tuple[pd.DataFrame, list[dict
             agg["cohort_size"] = max(n_students_total, 1)
             agg["target_metier_id"] = None
         agg["pct"] = (agg["n_students"] / agg["cohort_size"].clip(lower=1) * 100).round(1)
-        agg["priority"] = agg["pct"].apply(priority_label)
+        agg["priority"] = agg["avg_similarity"].apply(priority_from_gap_severity)
         agg["bucket"] = bucket_label
         agg["popularity_rank"] = agg["metier_name"].map(rank_map).fillna(99).astype(int)
         agg_frames.append(agg)
@@ -1049,7 +1075,7 @@ def load_and_cluster_gaps(st_model: Any | None) -> tuple[pd.DataFrame, list[dict
             "n_students":       total_impacted,
             "cohort_size":      cohort_size,
             "pct":              merged_pct,
-            "priority":         priority_label(merged_pct),
+            "priority":         priority_from_gap_severity(float(sub["avg_similarity"].mean())),
             "popularity_rank":  int(rep["popularity_rank"]),
             "avg_similarity":   float(sub["avg_similarity"].mean()),
         })
