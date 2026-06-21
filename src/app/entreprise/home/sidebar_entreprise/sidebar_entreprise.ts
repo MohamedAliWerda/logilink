@@ -63,7 +63,7 @@ export class SidebarEntreprise implements OnInit, OnDestroy {
   },
   {
     key: 'feedback',
-    label: 'Feedback',
+    label: 'Retour',
     route: '/entreprise/feedback',
     exact: false,
   },

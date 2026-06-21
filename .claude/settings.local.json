@@ -80,7 +80,8 @@
       "Bash(npx ng *)",
       "Bash(sed -n '60,64p;236,239p' src/app/user/home/component/recommendation/recommendation.css)",
       "Bash(sed -n '340,350p' src/app/user/home/component/recommendation/recommendation.css)",
-      "Bash(grep -n \"white-space: nowrap\\\\|flex-shrink: 0\\\\|width: [0-9]\\\\{3,\\\\}px\\\\|min-width\\\\|margin: -\\\\|margin-left: -\\\\|margin-right: -\\\\|overflow-x\" src/app/user/home/component/recommendation/recommendation.css)"
+      "Bash(grep -n \"white-space: nowrap\\\\|flex-shrink: 0\\\\|width: [0-9]\\\\{3,\\\\}px\\\\|min-width\\\\|margin: -\\\\|margin-left: -\\\\|margin-right: -\\\\|overflow-x\" src/app/user/home/component/recommendation/recommendation.css)",
+      "PowerShell(.\\\\setup_venv.ps1)"
     ]
   }
 }

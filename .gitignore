@@ -10,6 +10,11 @@
 /node_modules
 /backend/node_modules
 /backend/dist
+
+# Python
+/.venv
+__pycache__/
+*.pyc
 npm-debug.log
 yarn-error.log
 

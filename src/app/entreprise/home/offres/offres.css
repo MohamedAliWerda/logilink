@@ -710,6 +710,7 @@
 .btn-feedback {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     background: #fff7ed;
     border: 1.5px solid #f97316;

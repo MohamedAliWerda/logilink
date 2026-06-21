@@ -328,15 +328,40 @@ export class ValidationAdmin implements OnInit, OnDestroy {
 
   get filteredRecommendations(): Recommendation[] {
     const normalizedQuery = this.searchQuery.trim().toLowerCase();
-    return this.recommendations.filter((reco) => {
-      if (this.levelFilter !== 'all' && (reco.level ?? '').toUpperCase() !== this.levelFilter) {
-        return false;
-      }
-      if (!normalizedQuery) {
-        return true;
-      }
-      return this.matchesSearch(reco, normalizedQuery);
-    });
+    return this.recommendations
+      .filter((reco) => {
+        if (this.levelFilter !== 'all' && (reco.level ?? '').toUpperCase() !== this.levelFilter) {
+          return false;
+        }
+        if (!normalizedQuery) {
+          return true;
+        }
+        return this.matchesSearch(reco, normalizedQuery);
+      })
+      .sort((a, b) => {
+        // Primary: métier priority (lower popularity_rank = higher priority, 1 highest).
+        const rankDiff = this.metierPriorityRank(a) - this.metierPriorityRank(b);
+        if (rankDiff !== 0) return rankDiff;
+        // Secondary: criticité (CRITIQUE first, then MOYENNE/HAUTE, then FAIBLE).
+        const levelDiff = this.levelRank(a.level) - this.levelRank(b.level);
+        if (levelDiff !== 0) return levelDiff;
+        // Tertiary: most concerning first within the same level.
+        return Number(b.concern_rate ?? 0) - Number(a.concern_rate ?? 0);
+      });
+  }
+
+  private metierPriorityRank(reco: Recommendation): number {
+    const rank = Number(reco.popularity_rank);
+    return Number.isFinite(rank) ? rank : Number.POSITIVE_INFINITY;
+  }
+
+  private levelRank(level: string | null | undefined): number {
+    const v = (level ?? '').toUpperCase();
+    if (v === 'CRITIQUE') return 0;
+    if (v === 'HAUTE') return 1;
+    if (v === 'MOYENNE') return 2;
+    if (v === 'FAIBLE') return 3;
+    return 4;
   }
 
   levelClass(level: string | null | undefined): string {
