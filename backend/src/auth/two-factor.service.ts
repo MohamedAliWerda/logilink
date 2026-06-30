@@ -79,6 +79,9 @@ export class TwoFactorService {
         user: this.env.user,
         pass: this.env.pass,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
   }
 

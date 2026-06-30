@@ -30,13 +30,6 @@
             <div class="job-banner-text">
                 <strong>Recommandations</strong>
                 <span class="job-status-{{ currentJob.status }}">{{ displayJobStatus(currentJob.status) }}</span>
-                <span *ngIf="currentJob.stats as s" class="job-stats">
-        <ng-container *ngIf="s['total'] != null">
-          {{ s['done'] ?? 0 }} / {{ s['total'] }} traitées
-        </ng-container>
-        <ng-container *ngIf="s['n_students'] != null"> · {{ s['n_students'] }} étudiants</ng-container>
-        <ng-container *ngIf="s['elapsed_sec'] != null"> · {{ s['elapsed_sec'] }}s</ng-container>
-      </span>
             </div>
             <div *ngIf="currentJob.error" class="job-error">{{ currentJob.error }}</div>
         </div>

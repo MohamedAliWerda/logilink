@@ -72,6 +72,25 @@ export class OffresService {
       );
   }
 
+  fetchSubmittedFeedbackPostIds(): Observable<Set<string>> {
+    const societeId = this.getSocieteIdFromStorage();
+    if (!societeId) return of(new Set<string>());
+
+    return this.http.get<any>(`${this.apiUrl}/company/${societeId}/feedback-eligible`).pipe(
+      timeout(10000),
+      map((response) => {
+        const rows = Array.isArray(response?.data) ? response.data : [];
+        return new Set<string>(
+          rows
+            .filter((r: any) => r.submitted === true)
+            .map((r: any) => String(r.id_line ?? r.id ?? ''))
+            .filter(Boolean),
+        );
+      }),
+      catchError(() => of(new Set<string>())),
+    );
+  }
+
   fetchCompanyCandidaturesCount(): Observable<number> {
     const societeId = this.getSocieteIdFromStorage();
     if (!societeId) {

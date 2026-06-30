@@ -50,6 +50,9 @@ export class MailService {
         user: this.env.user,
         pass: this.env.pass,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
   }
 

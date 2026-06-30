@@ -54,6 +54,7 @@ export class Offres implements OnInit, OnDestroy {
 
   successMessage = '';
   errorMessage = '';
+  submittedFeedbackPostIds = new Set<string>();
 
   private destroy$ = new Subject<void>();
   private loadWatchdog: number | null = null;
@@ -76,6 +77,7 @@ export class Offres implements OnInit, OnDestroy {
     this.subscribeToService();
     this.loadCandidaturesCount();
     this.loadOffres();
+    this.loadSubmittedFeedbacks();
   }
 
   ngOnDestroy(): void {
@@ -128,6 +130,17 @@ export class Offres implements OnInit, OnDestroy {
 
   get totalCandidatures(): number {
     return this.totalCandidaturesCount;
+  }
+
+  private loadSubmittedFeedbacks(): void {
+    this.offresService.fetchSubmittedFeedbackPostIds()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((ids) => {
+        this.ngZone.run(() => {
+          this.submittedFeedbackPostIds = ids;
+          this.cdr.detectChanges();
+        });
+      });
   }
 
   private loadCandidaturesCount(): void {
@@ -307,7 +320,7 @@ export class Offres implements OnInit, OnDestroy {
   }
 
   isFeedbackAvailable(offre: Offre): boolean {
-    return !!offre.feedback_email_sent_at;
+    return !!offre.feedback_email_sent_at && !this.submittedFeedbackPostIds.has(offre.id);
   }
 
   openFeedback(offre: Offre): void {

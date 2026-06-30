@@ -60,10 +60,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv(
 )
 
 # Gemini (seul provider LLM)
-GEMINI_API_KEY = os.getenv(
-    "GEMINI_API_KEY",
-    "AIzaSyBc4VEaXs90x6BPr2lk31S1EBOfhDjkGyk",
-)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 GEMINI_RATE_LIMIT_SLEEP = float(os.getenv("GEMINI_RATE_LIMIT_SLEEP", "1.0"))
 GEMINI_BATCH_SIZE = int(os.getenv("GEMINI_BATCH_SIZE", "5"))
@@ -303,8 +300,16 @@ def get_st_model() -> Any:
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore
             LOGGER.info("Loading SentenceTransformer: %s ...", ST_MODEL_NAME)
-            _ST_MODEL = SentenceTransformer(ST_MODEL_NAME)
-            LOGGER.info("SentenceTransformer ready.")
+            # Try local cache first — instant, no network required.
+            try:
+                _ST_MODEL = SentenceTransformer(ST_MODEL_NAME, local_files_only=True)
+                LOGGER.info("SentenceTransformer loaded from local cache.")
+            except Exception:
+                # HF now uses XET (P2P protocol) which may be blocked by firewalls/proxies.
+                os.environ["HF_HUB_DISABLE_XET"] = "1"
+                LOGGER.info("Downloading %s (first run, XET disabled) …", ST_MODEL_NAME)
+                _ST_MODEL = SentenceTransformer(ST_MODEL_NAME)
+                LOGGER.info("SentenceTransformer ready.")
         except Exception as exc:
             LOGGER.warning(
                 "SentenceTransformer unavailable (%s) — falling back to lexical embeddings.",
